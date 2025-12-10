@@ -1,4 +1,4 @@
-<img width="432" height="46" alt="image" src="https://github.com/user-attachments/assets/4fe58ba9-2a3b-423f-845f-a38e1c1762cf" /># The ancient metagenomic analysis of paleofeces
+# The ancient metagenomic analysis of paleofeces
 This code are analyses that accompanies the manuscript "Human-Animal Interactions in Prehistoric China: Insights from Metagenomic Analysis of Longshan Period Paleofeces"，and allows the reader to replicate the analysis in here. 
 ## Software and environment dependencies 
 All software used for the analysis, including precise version numbers, is listed below. It is **highly recommended** to use a containerized environment (e.g., Docker or Conda) for installation to ensure reproducibility.
