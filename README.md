@@ -1,4 +1,4 @@
-# The ancient metagenomic analysis of paleofeces
+<img width="432" height="46" alt="image" src="https://github.com/user-attachments/assets/4fe58ba9-2a3b-423f-845f-a38e1c1762cf" /># The ancient metagenomic analysis of paleofeces
 This code are analyses that accompanies the manuscript "Human-Animal Interactions in Prehistoric China: Insights from Metagenomic Analysis of Longshan Period Paleofeces"，and allows the reader to replicate the analysis in here. 
 ## Software and environment dependencies 
 All software used for the analysis, including precise version numbers, is listed below. It is **highly recommended** to use a containerized environment (e.g., Docker or Conda) for installation to ensure reproducibility.
@@ -42,4 +42,29 @@ fastqc ${id}_filtered_trim.fq -o .
 # Extract sequence lengths (using seqkit and awk) and generate fragment length plot (using Rscript)
 seqkit fx2tab -l -n -i ${id}_filtered_trim.fq  | awk '{print $2}' > ${i}.length & done
 Rscript /home/mazhihang/Script/length_plot.R ${i}.length ${i}_length.pdf ${i} 
+```
+## Taxonomic profiling
+### KrakenUniq
+```bash
+# Define working variables (these would be passed when running the script)
+# input_fastq: Path to the clean, host-filtered FastQ file (e.g., P1_meta.fq.gz)
+# threads: Number of CPU threads to use (e.g., 16)
+# sample: Sample ID (e.g., P1)
+
+# Define file paths based on script arguments
+input_fastq=$1
+threads=$2
+results=/mnt/analysis/mazhihang/Fenbian_analysis/09.KrakenUniq
+sample=$3
+KRAKEN_DB=/mnt/peaks/krakendb # Define database path
+
+# Run KrakenUniq Classification
+krakenuniq --db $KRAKEN_DB \
+    --fastq-input ${input_fastq} \
+    --threads $threads \
+    --output $results/${sample}/${sample}_sequences.krakenuniq \
+    --report-file $results/${sample}/${sample}_krakenuniq.output \
+    --gzip-compressed \
+    --only-classified-out
+
 ```
