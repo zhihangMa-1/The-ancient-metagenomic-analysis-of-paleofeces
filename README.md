@@ -147,6 +147,7 @@ cat *_NCBI_mitogenome_references.fa > cat_NCBI_mitogenome_references.fa
 mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_references.fa
 ```
 #### Then build consensus sequence for mitogenome reference sequences downloaded from NCBI
+
 1.) Alignment file opened in Geneious, consensus sequences created with 75% Majority rule for family level/each clade
 
 2.) Alignment created from all clade-consensus mitogenome references in Geneious (*_NCBI_mitogenome_references.fa)
@@ -173,6 +174,7 @@ mafft --thread n cat_NCBI_mitogenome_references_query.fa > Aln_NCBI_mitogenome_r
 ```
 ### Step 5: Running BEAST (Phylogenetic placement mtDNA)
 We confirmed the phylogenetic placement of our sequence using a selection of Elephantidae mitochondrial reference sequences, GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps. Convergence was assessed using Tracer v1.7.2 and an effective sample size (ESS) > 200.
+
 1.) Aln_NCBI_mitogenome_references_query.fa opened in BEAUti (v1.10.4)
 
 2.) Run with GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps
