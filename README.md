@@ -190,7 +190,7 @@ beast2 -threads n Aln_NCBI_mitogenome_references_query.xml
 
 ## Whole genome analysis of Canis lupus familiaris
 
-### Step 1：Alignment and Initial Processing
+#### Step 1：Alignment and Initial Processing
 The computational processing of the nuclear genome began with the alignment of pre-processed collapsed reads to the Canis lupus familiaris reference genome (UU_Cfam_GSD_1.0) supplemented with the Y chromosome (NC_051844.1).
 ```bash
 ref=/mnt/analysis/mazhihang/my_DB/dog/Canis_lupus_familiaris.fasta
@@ -207,15 +207,44 @@ samtools flagstat ${ID}.rmdup.sort.bam > ${ID}.rmdup.sort.bam.flagstat
 qualimap bamqc -bam ${ID}.rmdup.sort.bam -c -outdir ./dedup_{ID} 
 mapDamage -i ${ID}.rmdup.sort.bam -r $ref -d ./mapdamage_${ID}
 ```
-### Step 2：Trim 5bp to remove deamination signals
+#### Step 2：Trim 5bp to remove deamination signals
 ```bash
 bam trimBam ${ID}.mapped.bam ${ID}.trim.bam 5
 ```
-### Step 3: SNP Calling
+#### Step 3: SNP Calling
 ```bash
 samtools mpileup -R -B -q 30 -Q 30 -l /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.position.filtered  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Canis_lupus_familiars_Chr.fasta ${dir}/1.trimBam/${ID}.trim.bam > pileup_${ID}.txt
 pileupCaller --randomHaploid --sampleNames ${ID}  --samplePopName ${ID}  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.filtered -e ${ID} <  pileup_${ID}.txt > pileuplog${ID}.log
 ```
 
+### Sex Determination
+Biological sex for each ancient sample was determined using the Rx ratio method, which calculates the normalized ratio of X-chromosome to autosomal read coverage, a robust approach for low-coverage shotgun sequencing data. The analytical pipeline followed the methodology established by de Flamingh et al. (2020).
+```bash
+samtools view -q 30 -b input.sam > output.bam
+samtools rmdup input.bam output_no_duplicates.bam  
+samtools sort input.bam -o sorted_input.bam        
+samtools index sorted_input.bam                    
+samtools idxstats sorted_input.bam > sorted_input.idxstats
+Rscript RX_identifier.R AS24051601 > AS24051601.sex.txt
+```
+
+### Genetic relatedness
+```bash
+#Step 1: Run KINgaroo for data preparation 
+KINgaroo \
+    -bam ${BAM_DIR} \
+    -bed ${BED_FILE} \
+    -T ${BAM_LIST} \
+    -cnt 0 \
+    -c ${THREADS} \
+    -o ${KIN_OUT}/kingaroo_results
+
+#Step 2: Run KIN for kinship estimation
+KIN -I ${KIN_OUT}/kingaroo_results -O ${KIN_OUT} -c ${THREADS}
+```
+### Principal Component Analysis (PCA)
+```bash
+smartpca -p pca.par
+```
 
 
