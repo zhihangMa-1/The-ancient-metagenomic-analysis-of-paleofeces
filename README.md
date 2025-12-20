@@ -1,4 +1,4 @@
-<img width="432" height="46" alt="image" src="https://github.com/user-attachments/assets/619b744e-f10b-48ed-af41-59b4de87e026" /># The ancient metagenomic analysis of paleofeces
+<img width="432" height="46" alt="image" src="https://github.com/user-attachments/assets/ee63517f-9c2d-4283-bc61-067d52a4744d" /><img width="432" height="14" alt="image" src="https://github.com/user-attachments/assets/b1f04a25-3f9b-4b28-805d-c7f5cfb021a3" /><img width="432" height="46" alt="image" src="https://github.com/user-attachments/assets/619b744e-f10b-48ed-af41-59b4de87e026" /># The ancient metagenomic analysis of paleofeces
 This code are analyses that accompanies the manuscript "Human-Animal Interactions in Prehistoric China: Insights from Metagenomic Analysis of Longshan Period Paleofeces"，and allows the reader to replicate the analysis in here. 
 ## Software and environment dependencies 
 All software used for the analysis, including precise version numbers, is listed below. It is **highly recommended** to use a containerized environment (e.g., Docker or Conda) for installation to ensure reproducibility.
@@ -119,9 +119,14 @@ blastn -query ${RESULT_DIR}/ancient_contigs.fa -db ${NT_DB} \
 python ${SCRIPT_DIR}/bayes_genus.py ${RESULT_DIR}/nt_${ID}_confirm.tsv ${RESULT_DIR}/ancient_contigs.fa ${RESULT_DIR}/output.tsv
 
 ```
-## Authentication of endogenous plants and animals & Decontamination
+## Authentication  & Decontamination
 ### Authentication of endogenous plants and animals
 
 ### Decontamination by control samples
+
+## Mitochondrial phylogenetic tree of Canis lupus
+
+## Whole genome analysis of Canis lupus familiaris
+
 
 
