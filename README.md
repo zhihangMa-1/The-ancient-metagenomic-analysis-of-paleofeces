@@ -119,12 +119,66 @@ blastn -query ${RESULT_DIR}/ancient_contigs.fa -db ${NT_DB} \
 python ${SCRIPT_DIR}/bayes_genus.py ${RESULT_DIR}/nt_${ID}_confirm.tsv ${RESULT_DIR}/ancient_contigs.fa ${RESULT_DIR}/output.tsv
 
 ```
-## Authentication  & Decontamination
-### Authentication of endogenous plants and animals
+## Authentication and Deamination profile
 
-### Decontamination by control samples
+```bash
+data=$1
+ID=$2
+threads=$3
+ref=/mnt/analysis/mazhihang/Fenbian_analysis/05.haplotype/1.ref_sequence/NC_002008.4.fa
+bwa aln -l 1024 -n 0.01 -t $threads ${ref} ${data} > ${ID}.sai
+bwa samse -r "@RG\tID:foo_lane\tPL:illumina\tLB:library\tSM:${ID}" ${ref} ${ID}.sai ${data} > ${ID}.sam
+samtools view -Shb -@ $threads ${ID}.sam -q 30 -o ${ID}.bam #MAPQ大于30bp的
+samtools sort -@ $threads ${ID}.bam -o ${ID}.sort.bam
+samtools index ${ID}.sort.bam
+dedup -i ${ID}.sort.bam -m -o .
+samtools sort ${ID}.sort_rmdup.bam -o ${ID}.rmdup.sort.bam
+samtools index ${ID}.rmdup.sort.bam  && echo "** Dedup Complete **"
+qualimap bamqc -bam ${ID}.rmdup.sort.bam -c -outdir ./dedup_{ID} 
+mapDamage -i ${ID}.rmdup.sort.bam -r $ref -d ./mapdamage_${ID}
+
+```
 
 ## Mitochondrial phylogenetic tree of Canis lupus
+### Step 1: Construction of the Genus-level Consensus Reference
+To minimize mapping bias, a consensus mitochondrial sequence was constructed from representative Canis species. Species included: Canis lupus, Canis anthus, Canis latrans, Canis simensis, and Canis rufus (Accession numbers in Table S XXX).
+```bash
+cat *_NCBI_mitogenome_references.fa > cat_NCBI_mitogenome_references.fa
+mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_references.fa
+```
+#### Then build consensus sequence for mitogenome reference sequences downloaded from NCBI
+1.) Alignment file opened in Geneious, consensus sequences created with 75% Majority rule for family level/each clade
+2.) Alignment created from all clade-consensus mitogenome references in Geneious (*_NCBI_mitogenome_references.fa)
+3.) Consensus sequence created with 75% Majority rule from all clade-consensus mitogenome references in Geneious (Aln_cons_Canis.fa)
+
+### Step 2: Mapping and Post-processing
+```bash
+# Index the consensus reference
+bwa index Aln_cons_Canis.fa
+# Mapping using BWA aln (optimized for short ancient reads) & Filtering: retain MQ >= 25 and remove unmapped reads
+ref=/mnt/analysis/mazhihang/Fenbian_analysis/04.mit_tree/Aln_cons_Canis.fa
+bwa aln -l 1024 -n 0.001 -t $threads ${ref} ${data_path}/${id}_rl.fq | bwa samse ${ref}  - ${data_path}/${id}_rl.fq  | samtools view -F 4 -q 25 -@ ${threads} -uS - | samtools sort -@ ${threads} -o ${id}.mt.sort.q25.bam
+```
+### Step 3: Sample Consensus Generation
+```bash
+angsd -dofasta 2 -docounts 1 -minmapq 25 -minq 25 -uniqueonly 1 -setMinDepthInd 5 -i AS022106_aln2mt.sort.q20.bam -out Cons_Sample.taxa.depth5
+gunzip Cons_Sample.taxa.depth5.fa.gz
+```
+### Step 4: Concatenating and aligning all Canis mitogenome reference sequences and sample consensus
+```bash
+cat Cons_Sample.taxa.depth5.fa *_NCBI_mitogenome_references.fa > cat_NCBI_mitogenome_references_query.fa
+mafft --thread n cat_NCBI_mitogenome_references_query.fa > Aln_NCBI_mitogenome_references_query.fa
+```
+### Step 5: Running BEAST (Phylogenetic placement mtDNA)
+We confirmed the phylogenetic placement of our sequence using a selection of Elephantidae mitochondrial reference sequences, GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps. Convergence was assessed using Tracer v1.7.2 and an effective sample size (ESS) > 200.
+1.) Aln_NCBI_mitogenome_references_query.fa opened in BEAUti (v1.10.4)
+2.) Run with GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps
+```bash
+beast2 -threads n Aln_NCBI_mitogenome_references_query.xml
+```
+3.) Tracer (v1.7.2) checked for convergence
+4.) TreeAnnotator (v1.10.4), 10% Burnin removed, Maximum Clade Credibility Tree created
+5.) FigTree (v1.4.4), Tree visualized with posterior probabilities
 
 ## Whole genome analysis of Canis lupus familiaris
 
