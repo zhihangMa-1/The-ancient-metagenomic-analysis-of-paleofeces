@@ -85,7 +85,7 @@ krakenuniq --db $KRAKEN_DB \
     --report-file $results/${sample}/${sample}_krakenuniq.output \
     --gzip-compressed \
     --only-classified-out
-# 对注释结果过滤
+# 
 python /home/mazhihang/Script/KrakenUniq/allrank_filter_krakenuniq.py /mnt/store2/mazhihang/FNQZ/${i}/${i}_krakenuniq.output 1000 200
 # 添加注释信息
 python3 /home/mazhihang/Script/KrakenUniq/get_lineasges_all.py ${i}/${i}_krakenuniq.output.species.filtered $i/krakenuniq.output.species.filtered.with_lineage.tsv
@@ -93,25 +93,25 @@ python3 /home/mazhihang/Script/KrakenUniq/get_lineasges_all.py ${i}/${i}_krakenu
 python /home/mazhihang/Script/KrakenUniq/generate_abundance_matrix_lineasges.py /mnt/store2/mazhihang/FNQZ samplename.txt Species_abundance_matrix_1000_200.csv
 ```
 ### 2. Eukaryotic Refinement (Assembly-based)
-# Deduplication & Assembly
+#### Deduplication & Assembly
 clumpify.sh in=${DATA_DIR}/${ID}_rl.fq out=${RESULT_DIR}/${ID}_dedup.fq dedupe threads=$THREADS qin=33
 megahit -r ${RESULT_DIR}/${ID}_dedup.fq --min-contig-len 500 \
     --num-cpu-threads $THREADS --out-dir ${RESULT_DIR}/megahit_${ID} \
     --out-prefix ${ID} --preset meta-large
-# Alignment & Damage Authentication
+#### Alignment & Damage Authentication
 
 bowtie2-build ${RESULT_DIR}/megahit_${ID}/${ID}.contigs.fa ${RESULT_DIR}/${ID}_index
 bowtie2 -x ${RESULT_DIR}/${ID}_index -U ${DATA_DIR}/${ID}_rl.fq -S ${RESULT_DIR}/${ID}.sam -p ${THREADS} -N 1
 samtools view -bS ${RESULT_DIR}/${ID}.sam | samtools sort -o ${RESULT_DIR}/${ID}.sorted.bam
 samtools markdup -r -s ${RESULT_DIR}/${ID}.sorted.bam ${RESULT_DIR}/${ID}.rmdup.bam
 samtools index ${RESULT_DIR}/${ID}.rmdup.bam
-# Run PyDamage
+#### Run PyDamage
 cd ${RESULT_DIR}
 pydamage analyze ${ID}.rmdup.bam -m 500 -p ${THREADS} -pl -f
-# Filter for ancient DNA signatures
+#### Filter for ancient DNA signatures
 awk -F',' 'NR>1 && $2 >= 0.7 && $12 < 0.05 && $15 >= 5 && $17 >= 0.05 {print $1}' pydamage_results/pydamage_results.csv > ancient_contigs.list
 seqtk subseq megahit_${ID}/${ID}.contigs.fa ancient_contigs.list > ancient_contigs.fa
-# Taxonomic Assignment & Bayesian Filter
+#### Taxonomic Assignment & Bayesian Filter
 blastn -query ${RESULT_DIR}/ancient_contigs.fa -db ${NT_DB} \
     -evalue 1e-5 -perc_identity 85 -max_target_seqs 100 \
     -outfmt "6 qseqid staxids bitscore length pident evalue stitle" \
