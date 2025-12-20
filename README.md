@@ -5,16 +5,35 @@ All software used for the analysis, including precise version numbers, is listed
 ### Core bioinformatics tools 
 * **FastQC:** v0.11.9
 * **BWA:** v0.7.17
+* **leeHom**
+* **sga**
+* **seqkit**
+* **krakenuniq**
+* **megahit**
+* **blastn**
+* **pydamage**
+* **mapDamage**
+* **bowtie**
+* **samtools**
+* **dedup**
+* **bwa**
+* **mafft**
+* **angsd**
+* **PileupCaller**
+* **KIN**
+* **smartPCA**
+
+
 
 ## Quality Control and Adapter Trimming
 This step uses leeHom (a specialized ancient DNA tool) for adapter trimming and quality filtering. It is followed by filtering sequences shorter than 30 bp using sga.
 ```bash
 # Define working variables
 result=/mnt/analysis/mazhihang/Fenbian_analysis/01.data
-id=P1 # Example ID for Paleofeces 1
-data1=${result}/Paleofeces1_R1.fq.gz
-data2=${result}/Paleofeces1_R2.fq.gz
-threads=16
+id=P1 # Example ID for Paleofeces
+data1=${data}/Paleofeces1_R1.fq.gz
+data2=${data}/Paleofeces1_R2.fq.gz
+threads=12
 min_length=30
 
 # 1.2. Adapter Trimming, QC, and aDNA Damage Flagging (using leeHom)
@@ -44,7 +63,7 @@ seqkit fx2tab -l -n -i ${id}_filtered_trim.fq  | awk '{print $2}' > ${i}.length 
 Rscript /home/mazhihang/Script/length_plot.R ${i}.length ${i}_length.pdf ${i} 
 ```
 ## Taxonomic profiling
-### KrakenUniq
+### 1. Initial Taxonomic Profiling (KrakenUniq)
 ```bash
 # Define working variables (these would be passed when running the script)
 # input_fastq: Path to the clean, host-filtered FastQ file (e.g., P1_meta.fq.gz)
@@ -66,5 +85,13 @@ krakenuniq --db $KRAKEN_DB \
     --report-file $results/${sample}/${sample}_krakenuniq.output \
     --gzip-compressed \
     --only-classified-out
+# 对注释结果过滤
+python /home/mazhihang/Script/KrakenUniq/allrank_filter_krakenuniq.py /mnt/store2/mazhihang/FNQZ/${i}/${i}_krakenuniq.output 1000 200
+# 添加注释信息
+python3 /home/mazhihang/Script/KrakenUniq/get_lineasges_all.py ${i}/${i}_krakenuniq.output.species.filtered $i/krakenuniq.output.species.filtered.with_lineage.tsv
+#生成物种丰度表
+python /home/mazhihang/Script/KrakenUniq/generate_abundance_matrix_lineasges.py /mnt/store2/mazhihang/FNQZ samplename.txt Species_abundance_matrix_129_3.csv
 
 ```
+### Eukaryotic Refinement (Assembly-based)
+
