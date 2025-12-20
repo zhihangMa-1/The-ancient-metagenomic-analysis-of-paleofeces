@@ -190,5 +190,32 @@ beast2 -threads n Aln_NCBI_mitogenome_references_query.xml
 
 ## Whole genome analysis of Canis lupus familiaris
 
+### Step 1：Alignment and Initial Processing
+The computational processing of the nuclear genome began with the alignment of pre-processed collapsed reads to the Canis lupus familiaris reference genome (UU_Cfam_GSD_1.0) supplemented with the Y chromosome (NC_051844.1).
+```bash
+ref=/mnt/analysis/mazhihang/my_DB/dog/Canis_lupus_familiaris.fasta
+bwa aln -l 1024 -n 0.01 -t $threads ${ref} ${data} > ${ID}.sai
+bwa samse -r "@RG\tID:foo_lane\tPL:illumina\tLB:library\tSM:${ID}" ${ref} ${ID}.sai ${data} > ${ID}.sam
+samtools view -Shb -@ $threads ${ID}.sam -o ${ID}.bam
+samtools sort -@ $threads ${ID}.bam -o ${ID}.sort.bam
+samtools index ${ID}.sort.bam
+dedup -i ${ID}.sort.bam -m -o .
+samtools sort ${ID}.sort_rmdup.bam -o ${ID}.rmdup.sort.bam
+samtools index ${ID}.rmdup.sort.bam  
+samtools flagstat ${ID}.rmdup.sort.bam > ${ID}.rmdup.sort.bam.flagstat
+#qualimap check
+qualimap bamqc -bam ${ID}.rmdup.sort.bam -c -outdir ./dedup_{ID} 
+mapDamage -i ${ID}.rmdup.sort.bam -r $ref -d ./mapdamage_${ID}
+```
+### Step 2：Trim 5bp to remove deamination signals
+```bash
+bam trimBam ${ID}.mapped.bam ${ID}.trim.bam 5
+```
+### Step 3: SNP Calling
+```bash
+samtools mpileup -R -B -q 30 -Q 30 -l /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.position.filtered  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Canis_lupus_familiars_Chr.fasta ${dir}/1.trimBam/${ID}.trim.bam > pileup_${ID}.txt
+pileupCaller --randomHaploid --sampleNames ${ID}  --samplePopName ${ID}  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.filtered -e ${ID} <  pileup_${ID}.txt > pileuplog${ID}.log
+```
+
 
 
