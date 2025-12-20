@@ -63,7 +63,7 @@ seqkit fx2tab -l -n -i ${id}_filtered_trim.fq  | awk '{print $2}' > ${i}.length 
 Rscript /home/mazhihang/Script/length_plot.R ${i}.length ${i}_length.pdf ${i} 
 ```
 ## Taxonomic profiling
-### 1. Initial Taxonomic Profiling (KrakenUniq)
+### Initial Taxonomic Profiling (KrakenUniq)
 ```bash
 # Define working variables (these would be passed when running the script)
 # input_fastq: Path to the clean, host-filtered FastQ file (e.g., P1_meta.fq.gz)
@@ -92,7 +92,7 @@ python3 /home/mazhihang/Script/KrakenUniq/get_lineasges_all.py ${i}/${i}_krakenu
 #生成物种丰度表
 python /home/mazhihang/Script/KrakenUniq/generate_abundance_matrix_lineasges.py /mnt/store2/mazhihang/FNQZ samplename.txt Species_abundance_matrix_1000_200.csv
 ```
-### 2. Eukaryotic Refinement (Assembly-based)
+### Eukaryotic Refinement (Assembly-based)
 #### Deduplication & Assembly
 ```bash
 clumpify.sh in=${DATA_DIR}/${ID}_rl.fq out=${RESULT_DIR}/${ID}_dedup.fq dedupe threads=$THREADS qin=33
