@@ -25,7 +25,7 @@ All software used for the analysis, including precise version numbers, is listed
 
 
 
-## 1.Data pre-processing
+## 1. Data pre-processing
 
 ### 1.1 Read Processing and Adapter Trimming
 ```bash
@@ -67,7 +67,7 @@ fastqc "${ID}_clean.fq" -o ./qc_reports/
 seqkit fx2tab -l -n -i "${ID}_clean.fq" | awk '{print $2}' > "${ID}.lengths"
 Rscript scripts/visualize_length.R "${ID}.lengths" "${ID}_length_plot.pdf" "${ID}"
 ```
-## 2.Metagenomic Taxonomic Profiling
+## 2. Metagenomic Taxonomic Profiling
 
 ### 2.1 K-mer Profiling via KrakenUniq
 
@@ -112,7 +112,6 @@ python scripts/generate_abundance_matrix_lineasges.py \
 # Description: contig assembly, authentication, and BLAST validation
 # Usage: bash scripts/03_blastn.sh <sample_id> <input_fastq> <threads> <nt_db_path>
 
-# 1. Parameter Initialization
 ID=$1
 INPUT_FQ=$2
 THREADS=$3
@@ -176,7 +175,7 @@ python scripts/bayes_genus.py \
 echo "** Assembly-based Refinement for ${ID} Complete **"
 ```
 
-## 3.Authentication and Deamination profile
+## 3. Authentication and Deamination profile
 
 ```bash
 #!/bin/bash
@@ -221,9 +220,9 @@ mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_referen
 
 1.) Alignment file opened in Geneious, consensus sequences created with 75% Majority rule for family level/each clade
 
-2.) Alignment created from all clade-consensus mitogenome references in Geneious (*_NCBI_mitogenome_references.fa)
+2.) Alignment created from all clade-consensus mitogenome references in Geneious
 
-3.) Consensus sequence created with 75% Majority rule from all clade-consensus mitogenome references in Geneious (Aln_cons_Canis.fa)
+3.) Consensus sequence created with 75% Majority rule from all clade-consensus mitogenome references in Geneious 
 
 ### Step 2: Mapping and Consensus Generation
 
