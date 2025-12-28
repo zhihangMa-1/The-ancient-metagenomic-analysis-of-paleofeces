@@ -1,7 +1,7 @@
 # The ancient metagenomic analysis of paleofeces
 This code are analyses that accompanies the manuscript "Human-Animal Interactions in Prehistoric China: Insights from Metagenomic Analysis of Longshan Period Paleofeces"，and allows the reader to replicate the analysis in here. 
 ## Software and environment dependencies 
-All software used for the analysis, including precise version numbers, is listed below. It is **highly recommended** to use a containerized environment (e.g., Docker or Conda) for installation to ensure reproducibility.
+All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
 ### Core bioinformatics tools 
 * **FastQC:** v0.11.9
 * **BWA:** v0.7.17
@@ -25,45 +25,53 @@ All software used for the analysis, including precise version numbers, is listed
 
 
 
-## Quality Control and Adapter Trimming
-This step uses leeHom (a specialized ancient DNA tool) for adapter trimming and quality filtering. It is followed by filtering sequences shorter than 30 bp using sga.
-```bash
-# Define working variables
-result=/mnt/analysis/mazhihang/Fenbian_analysis/01.data
-id=P1 # Example ID for Paleofeces
-data1=${data}/Paleofeces1_R1.fq.gz
-data2=${data}/Paleofeces1_R2.fq.gz
-threads=12
-min_length=30
+## 1.Data pre-processing
 
-# 1.2. Adapter Trimming, QC, and aDNA Damage Flagging (using leeHom)
-~/anaconda3/envs/fast/envs/leehom/bin/leeHom \
+### 1.1 Read Processing and Adapter Trimming
+```bash
+#!/bin/bash
+# Description: Read merging and adapter trimming for aDNA
+# Usage: bash scripts/01_preprocessing.sh <ID> <R1_fastq> <R2_fastq> <threads>
+
+ID=$1
+DATA1=$2
+DATA2=$3
+THREADS=$4
+MIN_LENGTH=30
+
+# 1. Adapter Trimming and Read Merging via leeHom
+# Using universal Illumina adapter sequences
+leeHom \
     -f AGATCGGAAGAGCACACGTCTGAACTCCAGTCACNNNNNNNNATCTCGTATGCCGTCTTCTGCTTG \
     -s AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTNNNNNNNNGTGTAGATCTCGGTGGTCGCCGTATCATT \
     --ancientdna \
-    -fq1 $data1 \
-    -fq2 $data2 \
-    -fqo $id \
-    -t $threads
+    -fq1 "$DATA1" \
+    -fq2 "$DATA2" \
+    -fqo "$ID" \
+    -t "$THREADS"
 
-# 1.3. Unzip the Output
-gunzip ${id}.fq.gz
-
-# 1.4. Filter Sequences Shorter than 30 bp (using sga)
-sga preprocess --dust-threshold=1 -m $min_length ${id}.fq -o ${id}_filtered_trim.fq
+# 2. Filtering sequences shorter than 30bp and removing low-complexity reads (Dust threshold = 1)
+gunzip -c "${ID}.fq.gz" > "${ID}.fq"
+sga preprocess --dust-threshold=1 -m $MIN_LENGTH "${ID}.fq" -o "${ID}_clean.fq"
 ```
-Generates quality reports (FastQC) and prepares data for plotting the fragment length distribution.
+
+### 1.2 Fragment Length Plot and Quality Assessment
 ```bash
-# Generate basic sequence statistics (using seqkit)
-seqkit stats ${id}_filtered_trim.fq > ${id}_filtered_trim.fq.stats
-# Generate FastQC report for filtered sequences
-fastqc ${id}_filtered_trim.fq -o .
-# Extract sequence lengths (using seqkit and awk) and generate fragment length plot (using Rscript)
-seqkit fx2tab -l -n -i ${id}_filtered_trim.fq  | awk '{print $2}' > ${i}.length & done
-Rscript /home/mazhihang/Script/length_plot.R ${i}.length ${i}_length.pdf ${i} 
+# Generate comprehensive sequence statistics via seqkit
+seqkit stats "${ID}_clean.fq" > "${ID}_clean_stats.txt"
+
+# Run FastQC for base quality distribution
+fastqc "${ID}_clean.fq" -o ./qc_reports/
+
+# Extract fragment lengths for downstream deamination and preservation analysis
+seqkit fx2tab -l -n -i "${ID}_clean.fq" | awk '{print $2}' > "${ID}.lengths"
+
+# Plot length distribution (R script provided in scripts/visualize_length.R)
+Rscript scripts/visualize_length.R "${ID}.lengths" "${ID}_length_plot.pdf" "${ID}"
 ```
+
 ## Taxonomic profiling
-### Initial Taxonomic Profiling (KrakenUniq)
+### High-Throughput k-mer Profiling (KrakenUniq)
 ```bash
 # Define working variables (these would be passed when running the script)
 # input_fastq: Path to the clean, host-filtered FastQ file (e.g., P1_meta.fq.gz)
