@@ -258,85 +258,101 @@ angsd -dofasta 2 -docounts 1 -minmapq 25 -minq 25 -uniqueonly 1 \
 
 # Decompress the generated FASTA
 gunzip "${OUT_DIR}/${ID}_mt_consensus.fa.gz"
-# Concatenate sample consensus with reference dataset
-cat "${OUT_DIR}/${ID}_mt_consensus.fa" references/Global_Canis_Dataset.fa > "${OUT_DIR}/${ID}_query_aln.fa"
-# Multiple Sequence Alignment
-mafft --thread "${THREADS}" "${OUT_DIR}/${ID}_query_aln.fa" > "${OUT_DIR}/${ID}_final_alignment.fa"
 ```
 
 ### Step 4: Running BEAST (Phylogenetic placement mtDNA)
-We confirmed the phylogenetic placement of our sequence using a selection of Elephantidae mitochondrial reference sequences, GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps. Convergence was assessed using Tracer v1.7.2 and an effective sample size (ESS) > 200.
-
-1.) Aln_NCBI_mitogenome_references_query.fa opened in BEAUti (v1.10.4)
-
-2.) Run with GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps
+The reconstructed mitochondrial genome was aligned with a global dataset of Canis references to perform Bayesian phylogenetic inference.
 
 ```bash
-beast2 -threads n Aln_NCBI_mitogenome_references_query.xml
+# 1. Concatenate sample consensus with reference dataset
+cat "${OUT_DIR}/${ID}_mt_consensus.fa" references/Global_Canis_Dataset.fa > "${OUT_DIR}/${ID}_query_aln.fa"
+
+# 2. Multiple Sequence Alignment
+mafft --thread "${THREADS}" "${OUT_DIR}/${ID}_query_aln.fa" > "${OUT_DIR}/${ID}_final_alignment.fa"
+
+# 3. Bayesian Inference (BEAST2)
+# Parameters: GTR+G substitution model, Strict Clock, Birth-Death Prior
+# MCMC: 20,000,000 iterations, sampling every 20,000 steps
+beast2 -threads "${THREADS}" configs/mtDNA_analysis.xml
+
+# 4. Post-MCMC Diagnostics
+(1) Convergence: ESS (Effective Sample Size) values were verified using Tracer v1.7.2 (all ESS > 200).
+(2) Tree Summarization: A Maximum Clade Credibility (MCC) tree was generated using TreeAnnotator (10% burn-in).
+(3) Visualization: Final trees were visualized in FigTree v1.4.4.
 ```
-3.) Tracer (v1.7.2) checked for convergence
+## 5. Paleogenomic Analysis of Canis lupus familiaris
 
-4.) TreeAnnotator (v1.10.4), 10% Burnin removed, Maximum Clade Credibility Tree created
+#### 5.1 Alignment and Post-processing
+Reads were aligned to the Canis lupus familiaris reference genome (UU_Cfam_GSD_1.0) supplemented with the Y chromosome (NC_051844.1). We utilized a specialized ancient DNA pipeline to mitigate the impact of post-mortem deamination.
 
-5.) FigTree (v1.4.4), Tree visualized with posterior probabilities
-
-## Whole genome analysis of Canis lupus familiaris
-
-#### Step 1：Alignment and Initial Processing
-The computational processing of the nuclear genome began with the alignment of pre-processed collapsed reads to the Canis lupus familiaris reference genome (UU_Cfam_GSD_1.0) supplemented with the Y chromosome (NC_051844.1).
 ```bash
-ref=/mnt/analysis/mazhihang/my_DB/dog/Canis_lupus_familiaris.fasta
-bwa aln -l 1024 -n 0.01 -t $threads ${ref} ${data} > ${ID}.sai
-bwa samse -r "@RG\tID:foo_lane\tPL:illumina\tLB:library\tSM:${ID}" ${ref} ${ID}.sai ${data} > ${ID}.sam
-samtools view -Shb -@ $threads ${ID}.sam -o ${ID}.bam
-samtools sort -@ $threads ${ID}.bam -o ${ID}.sort.bam
-samtools index ${ID}.sort.bam
-dedup -i ${ID}.sort.bam -m -o .
-samtools sort ${ID}.sort_rmdup.bam -o ${ID}.rmdup.sort.bam
-samtools index ${ID}.rmdup.sort.bam  
-samtools flagstat ${ID}.rmdup.sort.bam > ${ID}.rmdup.sort.bam.flagstat
-#qualimap check
-qualimap bamqc -bam ${ID}.rmdup.sort.bam -c -outdir ./dedup_{ID} 
-mapDamage -i ${ID}.rmdup.sort.bam -r $ref -d ./mapdamage_${ID}
+#!/bin/bash
+# Description: WGS mapping, deduplication, and deamination trimming
+# Usage: bash scripts/06_genome_processing.sh <input_fastq> <sample_id> <threads> <ref_fasta>
+
+DATA=$1
+ID=$2
+THREADS=$3
+REF=$4  # UU_Cfam_GSD_1.0 + Y chromosome
+
+OUT_DIR="./results/06.WGS/${ID}"
+mkdir -p "${OUT_DIR}"
+
+bwa aln -l 1024 -n 0.01 -t "${THREADS}" "${REF}" "${DATA}" > "${OUT_DIR}/${ID}.sai"
+bwa samse -r "@RG\tID:${ID}\tPL:illumina\tLB:lib1\tSM:${ID}" \
+    "${REF}" "${OUT_DIR}/${ID}.sai" "${DATA}" > "${OUT_DIR}/${ID}.sam"
+samtools view -Shb -@ "${THREADS}" -q 30 "${OUT_DIR}/${ID}.sam" | \
+samtools sort -@ "${THREADS}" -o "${OUT_DIR}/${ID}.sort.bam"
+dedup -i "${OUT_DIR}/${ID}.sort.bam" -m -o "${OUT_DIR}"
+samtools sort "${OUT_DIR}/${ID}.sort_rmdup.bam" -o "${OUT_DIR}/${ID}.rmdup.sort.bam"
+samtools index "${OUT_DIR}/${ID}.rmdup.sort.bam"
+qualimap bamqc -bam "${OUT_DIR}/${ID}.rmdup.sort.bam" -c -outdir "${OUT_DIR}/qualimap_${ID}"
+mapDamage -i "${OUT_DIR}/${ID}.rmdup.sort.bam" -r "${REF}" -d "${OUT_DIR}/mapdamage_${ID}"
+bam trimBam "${OUT_DIR}/${ID}.rmdup.sort.bam" "${OUT_DIR}/${ID}.trim5.bam" 5
+samtools sort "${OUT_DIR}/${ID}.trim5.bam" -o "${OUT_DIR}/${ID}.final.bam"
+samtools index "${OUT_DIR}/${ID}.final.bam"
 ```
-#### Step 2：Trim 5bp to remove deamination signals
+#### 5.2 Sex Determination
+Biological sex was determined using the Rx ratio method (de Flamingh et al., 2020), which calculates the ratio of X-chromosome coverage to the average autosomal coverage.
 ```bash
-bam trimBam ${ID}.mapped.bam ${ID}.trim.bam 5
+# Calculate alignment statistics
+samtools idxstats "${OUT_DIR}/${ID}.final.bam" > "${OUT_DIR}/${ID}.idxstats"
+
+# Identify sex using R script
+Rscript scripts/RX_identifier.R "${ID}" "${OUT_DIR}/${ID}.idxstats" > "${OUT_DIR}/${ID}.sex.txt"
 ```
-#### Step 3: SNP Calling
+#### 5.3: SNP Calling
+We performed SNP calling against the Dog10K dataset using pileupCaller.
+
 ```bash
-samtools mpileup -R -B -q 30 -Q 30 -l /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.position.filtered  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Canis_lupus_familiars_Chr.fasta ${dir}/1.trimBam/${ID}.trim.bam > pileup_${ID}.txt
+SNP_POS="./configs/Dog10k_SNPs.pos"
+SNP_REF_INFO="./configs/Dog10k_SNPs.ref"
+# Step 1: Generate mpileup
+samtools mpileup -R -B -q 30 -Q 30 -l "$SNP_POS" -f "$REF" \
+    "${OUT_DIR}/${ID}.final.bam" > "${OUT_DIR}/${ID}.mpileup"
+
+# Step 2: Call pseudo-haploid genotypes
+pileupCaller --randomHaploid --sampleNames "${ID}" --samplePopName "${ID}" \
+    -f "$SNP_REF_INFO" -e "${ID}.eigenstrat" < "${OUT_DIR}/${ID}.mpileup" \
+    > "${OUT_DIR}/${ID}.pileup.log"
 pileupCaller --randomHaploid --sampleNames ${ID}  --samplePopName ${ID}  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.filtered -e ${ID} <  pileup_${ID}.txt > pileuplog${ID}.log
 ```
 
-### Sex Determination
-Biological sex for each ancient sample was determined using the Rx ratio method, which calculates the normalized ratio of X-chromosome to autosomal read coverage, a robust approach for low-coverage shotgun sequencing data. The analytical pipeline followed the methodology established by de Flamingh et al. (2020).
-```bash
-samtools view -q 30 -b input.sam > output.bam
-samtools rmdup input.bam output_no_duplicates.bam  
-samtools sort input.bam -o sorted_input.bam        
-samtools index sorted_input.bam                    
-samtools idxstats sorted_input.bam > sorted_input.idxstats
-Rscript RX_identifier.R AS24051601 > AS24051601.sex.txt
-```
+### 5.4 Kinship and Population Structure
+To identify biological relationships and genetic affinities, we utilized KIN and smartPCA.
 
-### Genetic relatedness
-```bash
-#Step 1: Run KINgaroo for data preparation 
-KINgaroo \
-    -bam ${BAM_DIR} \
-    -bed ${BED_FILE} \
-    -T ${BAM_LIST} \
-    -cnt 0 \
-    -c ${THREADS} \
-    -o ${KIN_OUT}/kingaroo_results
+#### Kinship Estimation (KINgaroo & KIN)
 
-#Step 2: Run KIN for kinship estimation
-KIN -I ${KIN_OUT}/kingaroo_results -O ${KIN_OUT} -c ${THREADS}
-```
-### Principal Component Analysis (PCA)
 ```bash
-smartpca -p pca.par
+# Step 1: Data preparation
+KINgaroo -bam "${OUT_DIR}" -bed "$SNP_POS" -T configs/bam.list -cnt 0 -c "${THREADS}" -o "${OUT_DIR}/kinship_prep"
+# Step 2: Estimate kinship coefficients
+KIN -I "${OUT_DIR}/kinship_prep" -O "${OUT_DIR}/kinship_results" -c "${THREADS}"
+```
+#### Principal Component Analysis (PCA)
+```bash
+# Run smartPCA with lsqproject: YES
+smartpca -p configs/pca.par > "${OUT_DIR}/pca.log"
 ```
 
 
