@@ -68,7 +68,9 @@ seqkit fx2tab -l -n -i "${ID}_clean.fq" | awk '{print $2}' > "${ID}.lengths"
 Rscript scripts/visualize_length.R "${ID}.lengths" "${ID}_length_plot.pdf" "${ID}"
 ```
 ## 2.Metagenomic Taxonomic Profiling
+
 ### 2.1 K-mer Profiling via KrakenUniq
+
 The initial screening used KrakenUniq to count unique k-mers associated with each taxon. To account for potential false positives in ancient samples, we implemented a dual-threshold filter: a species is only considered present if it possesses at least 1,000 unique k-mers and is supported by at least 200 reads.
 
 ```bash
@@ -104,6 +106,7 @@ python scripts/generate_abundance_matrix_lineasges.py \
     "$RESULTS_DIR" samplename.txt Abundance_matrix.csv
 ```
 ### 2.2 Assembly-based Metagenomic Validation and Authentication
+
 ```bash
 #!/bin/bash
 # Description: contig assembly, authentication, and BLAST validation
@@ -173,7 +176,8 @@ python scripts/bayes_genus.py \
 echo "** Assembly-based Refinement for ${ID} Complete **"
 ```
 
-## 3. Authentication and Deamination profile
+## 3.Authentication and Deamination profile
+
 ```bash
 #!/bin/bash
 # Description: Targeted mapping to identified animal/plant references and damage profiling
@@ -205,9 +209,10 @@ mapDamage -i "${OUT_DIR}/${ID}.rmdup.sort.bam" -r "${REF}" -d "${OUT_DIR}/mapdam
 echo "** Authentication for ${ID} against $(basename ${REF}) complete **"
 ```
 
-## Mitochondrial phylogenetic tree of Canis lupus
-### Step 1: Construction of the Genus-level Consensus Reference
-To minimize mapping bias, a consensus mitochondrial sequence was constructed from representative Canis species. Species included: Canis lupus, Canis anthus, Canis latrans, Canis simensis, and Canis rufus (Accession numbers in Table S XXX).
+## 4. Mitochondrial phylogenetic tree of Canis lupus
+
+### Step 1: Genus-level Consensus Reference Construction
+To avoid "reference bias" toward a single modern dog or wolf genome, we constructed a consensus reference from multiple Canis species (Accession numbers in Table S1).
 ```bash
 cat *_NCBI_mitogenome_references.fa > cat_NCBI_mitogenome_references.fa
 mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_references.fa
@@ -220,25 +225,46 @@ mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_referen
 
 3.) Consensus sequence created with 75% Majority rule from all clade-consensus mitogenome references in Geneious (Aln_cons_Canis.fa)
 
-### Step 2: Mapping and Post-processing
+### Step 2: Mapping and Consensus Generation
+
 ```bash
-# Index the consensus reference
-bwa index Aln_cons_Canis.fa
-# Mapping using BWA aln (optimized for short ancient reads) & Filtering: retain MQ >= 25 and remove unmapped reads
-ref=/mnt/analysis/mazhihang/Fenbian_analysis/04.mit_tree/Aln_cons_Canis.fa
-bwa aln -l 1024 -n 0.001 -t $threads ${ref} ${data_path}/${id}_rl.fq | bwa samse ${ref}  - ${data_path}/${id}_rl.fq  | samtools view -F 4 -q 25 -@ ${threads} -uS - | samtools sort -@ ${threads} -o ${id}.mt.sort.q25.bam
+#!/bin/bash
+# Description: mtDNA mapping and sample consensus generation
+# Usage: bash scripts/05_mtDNA_consensus.sh <input_fastq> <sample_id> <threads> <consensus_ref>
+
+ID=$1
+DATA=$2
+THREADS=$3
+REF=$4
+OUT_DIR="./results/05.mtDNA/${ID}"
+
+mkdir -p "${OUT_DIR}"
+
+# 1. Indexing the reference
+bwa index "${REF}"
+
+# 2. Competitive mapping optimized for aDNA
+# Using -n 0.001 and -l 1024 for high sensitivity
+bwa aln -l 1024 -n 0.001 -t "${THREADS}" "${REF}" "${DATA}" | \
+bwa samse "${REF}" - "${DATA}" | \
+samtools view -F 4 -q 25 -@ "${THREADS}" -uS - | \
+samtools sort -@ "${THREADS}" -o "${OUT_DIR}/${ID}.mt.sort.q25.bam"
+
+# 3. Consensus generation using ANGSD
+# We used -setMinDepthInd 5 to ensure base-calling accuracy
+angsd -dofasta 2 -docounts 1 -minmapq 25 -minq 25 -uniqueonly 1 \
+      -setMinDepthInd 5 -i "${OUT_DIR}/${ID}.mt.sort.q25.bam" \
+      -out "${OUT_DIR}/${ID}_mt_consensus"
+
+# Decompress the generated FASTA
+gunzip "${OUT_DIR}/${ID}_mt_consensus.fa.gz"
+# Concatenate sample consensus with reference dataset
+cat "${OUT_DIR}/${ID}_mt_consensus.fa" references/Global_Canis_Dataset.fa > "${OUT_DIR}/${ID}_query_aln.fa"
+# Multiple Sequence Alignment
+mafft --thread "${THREADS}" "${OUT_DIR}/${ID}_query_aln.fa" > "${OUT_DIR}/${ID}_final_alignment.fa"
 ```
-### Step 3: Sample Consensus Generation
-```bash
-angsd -dofasta 2 -docounts 1 -minmapq 25 -minq 25 -uniqueonly 1 -setMinDepthInd 5 -i AS022106_aln2mt.sort.q20.bam -out Cons_Sample.taxa.depth5
-gunzip Cons_Sample.taxa.depth5.fa.gz
-```
-### Step 4: Concatenating and aligning all Canis mitogenome reference sequences and sample consensus
-```bash
-cat Cons_Sample.taxa.depth5.fa *_NCBI_mitogenome_references.fa > cat_NCBI_mitogenome_references_query.fa
-mafft --thread n cat_NCBI_mitogenome_references_query.fa > Aln_NCBI_mitogenome_references_query.fa
-```
-### Step 5: Running BEAST (Phylogenetic placement mtDNA)
+
+### Step 4: Running BEAST (Phylogenetic placement mtDNA)
 We confirmed the phylogenetic placement of our sequence using a selection of Elephantidae mitochondrial reference sequences, GTR+G, strict clock, a birth-death substitution model, and ran the MCMC chain for 20,000,000 runs, sampling every 20,000 steps. Convergence was assessed using Tracer v1.7.2 and an effective sample size (ESS) > 200.
 
 1.) Aln_NCBI_mitogenome_references_query.fa opened in BEAUti (v1.10.4)
