@@ -57,94 +57,152 @@ sga preprocess --dust-threshold=1 -m $MIN_LENGTH "${ID}.fq" -o "${ID}_clean.fq"
 
 ### 1.2 Fragment Length Plot and Quality Assessment
 ```bash
-# Generate comprehensive sequence statistics via seqkit
+# Generate comprehensive sequence statistics 
 seqkit stats "${ID}_clean.fq" > "${ID}_clean_stats.txt"
 
 # Run FastQC for base quality distribution
 fastqc "${ID}_clean.fq" -o ./qc_reports/
 
-# Extract fragment lengths for downstream deamination and preservation analysis
-seqkit fx2tab -l -n -i "${ID}_clean.fq" | awk '{print $2}' > "${ID}.lengths"
-
 # Plot length distribution (R script provided in scripts/visualize_length.R)
+seqkit fx2tab -l -n -i "${ID}_clean.fq" | awk '{print $2}' > "${ID}.lengths"
 Rscript scripts/visualize_length.R "${ID}.lengths" "${ID}_length_plot.pdf" "${ID}"
 ```
+## 2.Metagenomic Taxonomic Profiling
+### 2.1 K-mer Profiling via KrakenUniq
+The initial screening used KrakenUniq to count unique k-mers associated with each taxon. To account for potential false positives in ancient samples, we implemented a dual-threshold filter: a species is only considered present if it possesses at least 1,000 unique k-mers and is supported by at least 200 reads.
 
-## Taxonomic profiling
-### High-Throughput k-mer Profiling (KrakenUniq)
 ```bash
-# Define working variables (these would be passed when running the script)
-# input_fastq: Path to the clean, host-filtered FastQ file (e.g., P1_meta.fq.gz)
-# threads: Number of CPU threads to use (e.g., 16)
-# sample: Sample ID (e.g., P1)
+#!/bin/bash
+# Description: Taxonomic Profiling via KrakenUniq
+# Usage: bash scripts/02_kraken_profiling.sh <input_fastq> <threads> <sample_id> <db_path>
 
-# Define file paths based on script arguments
-input_fastq=$1
-threads=$2
-results=/mnt/analysis/mazhihang/Fenbian_analysis/09.KrakenUniq
-sample=$3
-KRAKEN_DB=/mnt/peaks/krakendb # Define database path
+INPUT_FASTQ=$1
+THREADS=$2
+SAMPLE=$3
+KRAKEN_DB=$4
+RESULTS_DIR=$5
 
-# Run KrakenUniq Classification
-krakenuniq --db $KRAKEN_DB \
-    --fastq-input ${input_fastq} \
-    --threads $threads \
-    --output $results/${sample}/${sample}_sequences.krakenuniq \
-    --report-file $results/${sample}/${sample}_krakenuniq.output \
+mkdir -p "$RESULTS_DIR/$SAMPLE"
+
+# 1. Run KrakenUniq Classification
+krakenuniq --db "$KRAKEN_DB" \
+    --fastq-input "$INPUT_FASTQ" \
+    --threads "$THREADS" \
+    --output "$RESULTS_DIR/$SAMPLE/${SAMPLE}_sequences.krakenuniq" \
+    --report-file "$RESULTS_DIR/$SAMPLE/${SAMPLE}_krakenuniq.output" \
     --gzip-compressed \
     --only-classified-out
-# 
-python /home/mazhihang/Script/KrakenUniq/allrank_filter_krakenuniq.py /mnt/store2/mazhihang/FNQZ/${i}/${i}_krakenuniq.output 1000 200
-# 添加注释信息
-python3 /home/mazhihang/Script/KrakenUniq/get_lineasges_all.py ${i}/${i}_krakenuniq.output.species.filtered $i/krakenuniq.output.species.filtered.with_lineage.tsv
-#生成物种丰度表
-python /home/mazhihang/Script/KrakenUniq/generate_abundance_matrix_lineasges.py /mnt/store2/mazhihang/FNQZ samplename.txt Species_abundance_matrix_1000_200.csv
+# 2. Dual-threshold Filtering (1000 unique k-mers, 200 reads)
+python scripts/allrank_filter_krakenuniq.py \
+    "$RESULTS_DIR/$SAMPLE/${SAMPLE}_krakenuniq.output" 1000 200
+# 3. Lineage Annotation
+python3 scripts/get_lineasges_all.py \
+    "$RESULTS_DIR/$SAMPLE/${SAMPLE}_krakenuniq.output.species.filtered" \
+    "$RESULTS_DIR/$SAMPLE/krakenuniq.output.species.filtered.with_lineage.tsv"
+# 4. Abundance Matrix Generation
+python scripts/generate_abundance_matrix_lineasges.py \
+    "$RESULTS_DIR" samplename.txt Abundance_matrix.csv
 ```
-### Eukaryotic Refinement (Assembly-based)
+### 2.2 Assembly-based Metagenomic Validation and Authentication
 ```bash
-#1.Deduplication & Assembly
-clumpify.sh in=${DATA_DIR}/${ID}_rl.fq out=${RESULT_DIR}/${ID}_dedup.fq dedupe threads=$THREADS qin=33
-megahit -r ${RESULT_DIR}/${ID}_dedup.fq --min-contig-len 500 \
-    --num-cpu-threads $THREADS --out-dir ${RESULT_DIR}/megahit_${ID} \
-    --out-prefix ${ID} --preset meta-large
-#2.Alignment & Damage Authentication
-bowtie2-build ${RESULT_DIR}/megahit_${ID}/${ID}.contigs.fa ${RESULT_DIR}/${ID}_index
-bowtie2 -x ${RESULT_DIR}/${ID}_index -U ${DATA_DIR}/${ID}_rl.fq -S ${RESULT_DIR}/${ID}.sam -p ${THREADS} -N 1
-samtools view -bS ${RESULT_DIR}/${ID}.sam | samtools sort -o ${RESULT_DIR}/${ID}.sorted.bam
-samtools markdup -r -s ${RESULT_DIR}/${ID}.sorted.bam ${RESULT_DIR}/${ID}.rmdup.bam
-samtools index ${RESULT_DIR}/${ID}.rmdup.bam
-#3.Run PyDamage
-cd ${RESULT_DIR}
-pydamage analyze ${ID}.rmdup.bam -m 500 -p ${THREADS} -pl -f
-#4.Filter for ancient DNA signatures
-awk -F',' 'NR>1 && $2 >= 0.7 && $12 < 0.05 && $15 >= 5 && $17 >= 0.05 {print $1}' pydamage_results/pydamage_results.csv > ancient_contigs.list
-seqtk subseq megahit_${ID}/${ID}.contigs.fa ancient_contigs.list > ancient_contigs.fa
-#5.Taxonomic Assignment & Bayesian Filter
-blastn -query ${RESULT_DIR}/ancient_contigs.fa -db ${NT_DB} \
+#!/bin/bash
+# Description: contig assembly, authentication, and BLAST validation
+# Usage: bash scripts/03_blastn.sh <sample_id> <input_fastq> <threads> <nt_db_path>
+
+# 1. Parameter Initialization
+ID=$1
+INPUT_FQ=$2
+THREADS=$3
+NT_DB=$4
+
+# Define Directory Structure (Generalized Paths)
+RESULT_DIR="./${ID}"
+mkdir -p "${RESULT_DIR}"
+
+# 1. Assembly
+# BBTools clumpify removes optical/PCR duplicates to improve assembly contiguity
+clumpify.sh \
+    in="${INPUT_FQ}" \
+    out="${RESULT_DIR}/${ID}_dedup.fq" \
+    dedupe threads="${THREADS}" qin=33
+# MEGAHIT assembly with parameters optimized for metagenomes
+megahit \
+    -r "${RESULT_DIR}/${ID}_dedup.fq" \
+    --min-contig-len 500 \
+    --num-cpu-threads "${THREADS}" \
+    --out-dir "${RESULT_DIR}/megahit_${ID}" \
+    --out-prefix "${ID}" \
+    --preset meta-large
+
+# 2. Damage Authentication
+bowtie2-build "${RESULT_DIR}/megahit_${ID}/${ID}.contigs.fa" "${RESULT_DIR}/${ID}_index"
+bowtie2 -x "${RESULT_DIR}/${ID}_index" \
+    -U "${RESULT_DIR}/${ID}_dedup.fq" \
+    -S "${RESULT_DIR}/${ID}.sam" \
+    -p "${THREADS}" -N 1
+samtools view -bS "${RESULT_DIR}/${ID}.sam" | samtools sort -o "${RESULT_DIR}/${ID}.sorted.bam"
+samtools markdup -r -s "${RESULT_DIR}/${ID}.sorted.bam" "${RESULT_DIR}/${ID}_rmdup.bam"
+samtools index "${RESULT_DIR}/${ID}_rmdup.bam"
+
+#3. Ancient DNA Signature Quantification
+pydamage analyze "${RESULT_DIR}/${ID}_rmdup.bam" -m 500 -p "${THREADS}" -pl -f
+
+#4. Extract Authenticated Ancient Contigs
+# Filtering criteria: accuracy >= 0.7, q-value < 0.05, and deamination signal present
+awk -F',' 'NR>1 && $2 >= 0.7 && $12 < 0.05 && $15 >= 5 && $17 >= 0.05 {print $1}' \
+    "${RESULT_DIR}/pydamage_results/pydamage_results.csv" > "${RESULT_DIR}/ancient_contigs.list"
+# Extract sequences of authenticated contigs
+seqtk subseq "${RESULT_DIR}/megahit_${ID}/${ID}.contigs.fa" \
+    "${RESULT_DIR}/ancient_contigs.list" > "${RESULT_DIR}/ancient_contigs.fa"
+
+#5. Taxonomic Assignment & Bayesian Filtering
+# Query authenticated contigs against the NCBI nt database
+blastn -query "${RESULT_DIR}/ancient_contigs.fa" \
+    -db "${NT_DB}" \
     -evalue 1e-5 -perc_identity 85 -max_target_seqs 100 \
     -outfmt "6 qseqid staxids bitscore length pident evalue stitle" \
-    -num_threads ${THREADS} -out ${RESULT_DIR}/nt_${ID}_confirm.tsv
-python ${SCRIPT_DIR}/bayes_genus.py ${RESULT_DIR}/nt_${ID}_confirm.tsv ${RESULT_DIR}/ancient_contigs.fa ${RESULT_DIR}/output.tsv
+    -num_threads "${THREADS}" \
+    -out "${RESULT_DIR}/nt_${ID}_confirm.tsv"
 
+# Resolve taxonomic ambiguities using a custom Bayesian model
+python scripts/bayes_genus.py \
+    "${RESULT_DIR}/nt_${ID}_confirm.tsv" \
+    "${RESULT_DIR}/ancient_contigs.fa" \
+    "${RESULT_DIR}/${ID}_final_taxonomic_refinement.tsv"
+
+echo "** Assembly-based Refinement for ${ID} Complete **"
 ```
-## Authentication and Deamination profile
 
+## 3. Authentication and Deamination profile
 ```bash
-data=$1
+#!/bin/bash
+# Description: Targeted mapping to identified animal/plant references and damage profiling
+# Usage: bash scripts/04_authentication.sh <input_fastq> <sample_id> <threads> <ref_fasta>
+# 1. Parameter Initialization
+DATA=$1
 ID=$2
-threads=$3
-ref=/mnt/analysis/mazhihang/Fenbian_analysis/05.haplotype/1.ref_sequence/NC_002008.4.fa
-bwa aln -l 1024 -n 0.01 -t $threads ${ref} ${data} > ${ID}.sai
-bwa samse -r "@RG\tID:foo_lane\tPL:illumina\tLB:library\tSM:${ID}" ${ref} ${ID}.sai ${data} > ${ID}.sam
-samtools view -Shb -@ $threads ${ID}.sam -q 30 -o ${ID}.bam #MAPQ大于30bp的
-samtools sort -@ $threads ${ID}.bam -o ${ID}.sort.bam
-samtools index ${ID}.sort.bam
-dedup -i ${ID}.sort.bam -m -o .
-samtools sort ${ID}.sort_rmdup.bam -o ${ID}.rmdup.sort.bam
-samtools index ${ID}.rmdup.sort.bam  && echo "** Dedup Complete **"
-qualimap bamqc -bam ${ID}.rmdup.sort.bam -c -outdir ./dedup_{ID} 
-mapDamage -i ${ID}.rmdup.sort.bam -r $ref -d ./mapdamage_${ID}
+THREADS=$3
+REF=$4  # Path to the specific animal or plant reference genome
+# Define Directory Structure
+OUT_DIR="./results/04.Authentication/${ID}"
+mkdir -p "${OUT_DIR}"
 
+bwa aln -l 1024 -n 0.01 -t "${THREADS}" "${REF}" "${DATA}" > "${OUT_DIR}/${ID}.sai"
+bwa samse -r "@RG\tID:${ID}\tPL:illumina\tSM:${ID}" \
+    "${REF}" "${OUT_DIR}/${ID}.sai" "${DATA}" > "${OUT_DIR}/${ID}.sam"
+samtools view -Shb -@ "${THREADS}" -q 30 "${OUT_DIR}/${ID}.sam" -o "${OUT_DIR}/${ID}.bam"
+samtools sort -@ "${THREADS}" "${OUT_DIR}/${ID}.bam" -o "${OUT_DIR}/${ID}.sort.bam"
+samtools index "${OUT_DIR}/${ID}.sort.bam"
+dedup -i "${OUT_DIR}/${ID}.sort.bam" -m -o "${OUT_DIR}"
+samtools sort "${OUT_DIR}/${ID}.sort_rmdup.bam" -o "${OUT_DIR}/${ID}.rmdup.sort.bam"
+samtools index "${OUT_DIR}/${ID}.rmdup.sort.bam"
+
+# Generate mapping depth and coverage statistics via Qualimap
+qualimap bamqc -bam "${OUT_DIR}/${ID}.rmdup.sort.bam" -c -outdir "${OUT_DIR}/qualimap_${ID}"
+# Calculate deamination patterns at the ends of DNA fragments
+mapDamage -i "${OUT_DIR}/${ID}.rmdup.sort.bam" -r "${REF}" -d "${OUT_DIR}/mapdamage_${ID}"
+
+echo "** Authentication for ${ID} against $(basename ${REF}) complete **"
 ```
 
 ## Mitochondrial phylogenetic tree of Canis lupus
