@@ -3,6 +3,27 @@ This code are analyses that accompanies the manuscript "Human-Animal Interaction
 ## Software and environment dependencies 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
 
+### Core bioinformatics tools 
+* **FastQC:** v0.11.9
+* **BWA:** v0.7.17
+* **leeHom**
+* **sga**
+* **seqkit**
+* **krakenuniq**
+* **megahit**
+* **blastn**
+* **pydamage**
+* **mapDamage**
+* **bowtie**
+* **samtools**
+* **dedup**
+* **bwa**
+* **mafft**
+* **angsd**
+* **PileupCaller**
+* **KIN**
+* **smartPCA**
+
 ## 1. Data pre-processing
 
 ### 1.1 Read Processing and Adapter Trimming
