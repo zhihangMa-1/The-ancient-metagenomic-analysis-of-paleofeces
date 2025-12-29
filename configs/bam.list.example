@@ -1,0 +1,7 @@
+# This is an example of the bam.list required by KINgaroo.
+# Each line should provide the path to a BAM file followed by a sample ID.
+# Relative paths should be from the project root.
+
+./results/06.WGS/Sample01/Sample01.final.bam Sample01
+./results/06.WGS/Sample02/Sample02.final.bam Sample02
+./results/06.WGS/Sample03/Sample03.final.bam Sample03
