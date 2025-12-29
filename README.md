@@ -2,28 +2,6 @@
 This code are analyses that accompanies the manuscript "Human-Animal Interactions in Prehistoric China: Insights from Metagenomic Analysis of Longshan Period Paleofeces"，and allows the reader to replicate the analysis in here. 
 ## Software and environment dependencies 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
-### Core bioinformatics tools 
-* **FastQC:** v0.11.9
-* **BWA:** v0.7.17
-* **leeHom**
-* **sga**
-* **seqkit**
-* **krakenuniq**
-* **megahit**
-* **blastn**
-* **pydamage**
-* **mapDamage**
-* **bowtie**
-* **samtools**
-* **dedup**
-* **bwa**
-* **mafft**
-* **angsd**
-* **PileupCaller**
-* **KIN**
-* **smartPCA**
-
-
 
 ## 1. Data pre-processing
 
@@ -340,7 +318,7 @@ pileupCaller --randomHaploid --sampleNames ${ID}  --samplePopName ${ID}  -f /mnt
 ### 5.4 Kinship and Population Structure
 To identify biological relationships and genetic affinities, we utilized KIN and smartPCA.
 
-#### Kinship Estimation (KINgaroo & KIN)
+#### Kinship Estimation
 
 ```bash
 # Step 1: Data preparation
