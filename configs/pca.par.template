@@ -1,0 +1,5 @@
+genotypename: [PATH_TO_YOUR_GENO]
+snpname:      [PATH_TO_YOUR_SNP]
+indivname:    [PATH_TO_YOUR_IND]
+lsqproject:   YES
+numoutevec:   10
