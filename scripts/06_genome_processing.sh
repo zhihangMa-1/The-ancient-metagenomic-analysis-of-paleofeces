@@ -5,7 +5,7 @@
 DATA=$1
 ID=$2
 THREADS=$3
-REF=$4  # UU_Cfam_GSD_1.0 + Y chromosome
+REF=$4  
 
 OUT_DIR="./results/06.WGS/${ID}"
 mkdir -p "${OUT_DIR}"
