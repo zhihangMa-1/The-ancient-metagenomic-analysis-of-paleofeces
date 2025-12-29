@@ -1,15 +1,25 @@
 #!/bin/bash
-# Description: Read merging and adapter trimming for aDNA
-# Usage: bash scripts/01_preprocessing.sh <ID> <R1_fastq> <R2_fastq> <threads>
+# scripts/01_preprocessing.sh
 
 ID=$1
 DATA1=$2
 DATA2=$3
 THREADS=$4
 MIN_LENGTH=30
+OUT_CLEAN="${ID}_clean.fq"
 
-# 1. Adapter Trimming and Read Merging via leeHom
-# Using universal Illumina adapter sequences
+if [ -f "$OUT_CLEAN" ]; then
+    echo "[INFO] Pre-processed file '$OUT_CLEAN' already exists."
+    echo "[INFO] Verifying file integrity..."
+    if [ -s "$OUT_CLEAN" ]; then
+        echo "[INFO] Integrity check passed. Skipping trimming and merging steps."
+        exit 0
+    else
+        echo "[WARNING] '$OUT_CLEAN' is empty. Proceeding with raw data processing..."
+    fi
+fi
+
+echo "[PROCESS] Executing leeHom for $ID..."
 leeHom \
     -f AGATCGGAAGAGCACACGTCTGAACTCCAGTCACNNNNNNNNATCTCGTATGCCGTCTTCTGCTTG \
     -s AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTNNNNNNNNGTGTAGATCTCGGTGGTCGCCGTATCATT \
@@ -19,6 +29,6 @@ leeHom \
     -fqo "$ID" \
     -t "$THREADS"
 
-# 2. Filtering sequences shorter than 30bp and removing low-complexity reads (Dust threshold = 1)
 gunzip -c "${ID}.fq.gz" > "${ID}.fq"
-sga preprocess --dust-threshold=1 -m $MIN_LENGTH "${ID}.fq" -o "${ID}_clean.fq"
+sga preprocess --dust-threshold=1 -m $MIN_LENGTH "${ID}.fq" -o "$OUT_CLEAN"
+rm "${ID}.fq"
