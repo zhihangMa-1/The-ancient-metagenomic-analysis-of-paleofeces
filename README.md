@@ -302,17 +302,27 @@ Rscript scripts/RX_identifier.R "${ID}" "${OUT_DIR}/${ID}.idxstats" > "${OUT_DIR
 We performed SNP calling against the Dog10K dataset using pileupCaller.
 
 ```bash
-SNP_POS="./configs/Dog10k_SNPs.pos"
-SNP_REF_INFO="./configs/Dog10k_SNPs.ref"
-# Step 1: Generate mpileup
-samtools mpileup -R -B -q 30 -Q 30 -l "$SNP_POS" -f "$REF" \
+SNP_POS="./configs/Dog10k_SNPs.bed"
+SNP_REF="./configs/Dog10k_SNPs.snp"
+REF_FASTA="./references/Canis_lupus_familiaris.fasta"
+
+# Step 1: Generate mpileup at specific SNP locations
+# -q 30 -Q 30: Minimum mapping and base quality thresholds
+samtools mpileup -R -B -q 30 -Q 30 \
+    -l "$SNP_POS" \
+    -f "$REF_FASTA" \
     "${OUT_DIR}/${ID}.final.bam" > "${OUT_DIR}/${ID}.mpileup"
 
-# Step 2: Call pseudo-haploid genotypes
-pileupCaller --randomHaploid --sampleNames "${ID}" --samplePopName "${ID}" \
-    -f "$SNP_REF_INFO" -e "${ID}.eigenstrat" < "${OUT_DIR}/${ID}.mpileup" \
+# Step 2: Call pseudo-haploid genotypes using pileupCaller
+# --randomHaploid: Randomly selects one base per site
+# -e: Output in EIGENSTRAT format (geno, snp, ind)
+pileupCaller --randomHaploid \
+    --sampleNames "${ID}" \
+    --samplePopName "${ID}" \
+    -f "$SNP_REF" \
+    -e "${OUT_DIR}/${ID}" \
+    < "${OUT_DIR}/${ID}.mpileup" \
     > "${OUT_DIR}/${ID}.pileup.log"
-pileupCaller --randomHaploid --sampleNames ${ID}  --samplePopName ${ID}  -f /mnt/rawdata/mazhihang/my_DB/Dog_SNp/Dog10k_Chr.snp.filtered -e ${ID} <  pileup_${ID}.txt > pileuplog${ID}.log
 ```
 
 ### 5.4 Kinship and Population Structure
