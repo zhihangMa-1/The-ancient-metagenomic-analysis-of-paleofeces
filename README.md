@@ -5,7 +5,7 @@ This repository contains the computational pipeline and scripts to accompany the
 This repository centralizes all scripts and configurations required to replicate the study:
 
 * scripts/: Core analysis pipeline (Bash, Python, and R scripts).
-* configs/: Configuration templates (e.g., pca.par), SNP lists, and example metadata.
+* configs/: Configuration templates, SNP lists, and example metadata.
 * LICENSE: MIT License.
 * README.md: Main documentation.
 
