@@ -61,16 +61,31 @@ bash scripts/02_kraken_profiling.sh \
 * Inputs: Pre-processed clean FASTQ files.
 * Outputs: ${SAMPLE}_krakenuniq.output: Comprehensive k-mer report. ${SAMPLE}_sequences.krakenuniq: Per-read classification results.
 
-# Arguments: <input_fastq> <threads> <sample_id> <db_path> <results_dir>
-bash scripts/02_kraken_profiling.sh \
-    data/clean/sample01_clean.fq 16 sample01 \
-    /path/to/kraken_db ./results/taxa
-Inputs: Pre-processed clean FASTQ files.
+##### Step 2: Dual-threshold Filtering & Lineage Annotation
+We provide a Python-based pipeline to filter the KrakenUniq output and assign full taxonomic lineages.
+* Scripts: scripts/allrank_filter_krakenuniq.py and scripts/get_lineasges_all.py
+* Usage:
+```bash
+# 1. Filter results (Thresholds: 1000 unique k-mers, 200 reads)
+python scripts/allrank_filter_krakenuniq.py \
+    results/taxa/sample01/sample01_krakenuniq.output 1000 200
 
-Outputs: * ${SAMPLE}_krakenuniq.output: Comprehensive k-mer report.
+# 2. Annotate lineages for the filtered species list
+python scripts/get_lineasges_all.py \
+    results/taxa/sample01/sample01_krakenuniq.output.species.filtered \
+    results/taxa/sample01/taxa_with_lineage.tsv
+```
 
-${SAMPLE}_sequences.krakenuniq: Per-read classification results.
-
+##### Step 3: Abundance Matrix Generation (Corresponds to Table S3)
+This script aggregates filtered results from all samples into a single matrix for downstream statistical analysis and visualization in R.
+* Script: scripts/generate_abundance_matrix_lineasges.py
+* Usage:
+```bash
+# Arguments: <results_directory> <sample_list_file> <output_csv_name>
+python scripts/generate_abundance_matrix_lineasges.py \
+    ./results/taxa scripts/samplename.txt Abundance_matrix.csv
+```
+* Key Output: Abundance_matrix.csv (The primary data source for Figure 2 and Figure 7).
 ### 2.2 Assembly-based Metagenomic Validation and Authentication
 
 ```bash
