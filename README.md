@@ -59,8 +59,8 @@ bash scripts/02_kraken_profiling.sh \
     /path/to/kraken_db ./results/taxa
 ```
 * Inputs: Pre-processed clean FASTQ files.
-* Outputs: * ${SAMPLE}_krakenuniq.output: Comprehensive k-mer report.
-      * ${SAMPLE}_sequences.krakenuniq: Per-read classification results.
+* Outputs:
+    * ${SAMPLE}_krakenuniq.output: Comprehensive k-mer report. * ${SAMPLE}_sequences.krakenuniq: Per-read classification results.
 
 # Arguments: <input_fastq> <threads> <sample_id> <db_path> <results_dir>
 bash scripts/02_kraken_profiling.sh \
