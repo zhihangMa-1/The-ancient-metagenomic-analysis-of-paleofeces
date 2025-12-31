@@ -106,10 +106,10 @@ bash scripts/03_blastn.sh sample_01 data/clean/sample01_clean.fq 16 /path/to/ncb
 ```
 #### Step 2: Ancient DNA Damage Authentication
 We employ pyDamage to analyze the C-to-T deamination frequency at the ends of DNA fragments for each contig.
-    * Filtering Criteria for "Ancient" Status:
-        * Accuracy: $\ge$ 0.7
-        * Q-value: $<$ 0.05Deamination signal: Observed at fragment termini.
-    * Primary Output: ancient_contigs.fa (A FASTA file containing only authenticated ancient sequences).
+* Filtering Criteria for "Ancient" Status:
+*     * Accuracy: $\ge$ 0.7
+*     * Q-value: $<$ 0.05Deamination signal: Observed at fragment termini.
+*      * Primary Output: ancient_contigs.fa (A FASTA file containing only authenticated ancient sequences).
 
 
 ## 3. Authentication and Deamination profile
