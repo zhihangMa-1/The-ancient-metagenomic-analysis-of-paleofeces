@@ -261,7 +261,7 @@ KINgaroo -bam "${OUT_DIR}" -bed "$SNP_POS" -T configs/bam.list -cnt 0 -c "${THRE
 KIN -I "${OUT_DIR}/kinship_prep" -O "${OUT_DIR}/kinship_results" -c "${THREADS}"
 ```
 
-#### Principal Component Analysis (PCA)
+#### Principal Component Analysis (PCA) (Corresponds to **Figure 4** )
 Population structure was visualized by projecting ancient samples onto modern dog reference panel.
 ```bash
 # Run smartPCA with lsqproject: YES
