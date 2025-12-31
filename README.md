@@ -3,10 +3,11 @@ This repository contains the computational pipeline and scripts to accompany the
 
 ## 1.Repository Structure
 This repository centralizes all scripts and configurations required to replicate the study:
-scripts/: Core analysis pipeline (Bash, Python, and R scripts).
-configs/: Configuration templates (e.g., pca.par), SNP lists, and example metadata.
-LICENSE: MIT License.
-README.md: Main documentation.
+
+* scripts/: Core analysis pipeline (Bash, Python, and R scripts).
+* configs/: Configuration templates (e.g., pca.par), SNP lists, and example metadata.
+* LICENSE: MIT License.
+* README.md: Main documentation.
 
 ## 2.Software and Environment 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
