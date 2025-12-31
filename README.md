@@ -1,7 +1,7 @@
 # Human-Animal Interactions in Prehistoric China: Metagenomic Analysis of Longshan Period Paleofeces
 This repository contains the computational pipeline and scripts to accompany the manuscript "Human-Animal Interactions in Prehistoric China: Insights from Metagenomic Analysis of Longshan Period Paleofeces" by Ma et al., submitted to the Journal of Archaeological Science. This compendium provides all necessary code, configuration files, and documentation required to reproduce the taxonomic profiling, authentication, and paleogenomic analyses presented in the study. The repository is permanently archived and accessible via DOI: XXX.
 
-## 1.Repository Structure
+## Repository Structure
 This repository centralizes all scripts and configurations required to replicate the study:
 
 * scripts/: Core analysis pipeline (Bash, Python, and R scripts).
@@ -9,120 +9,69 @@ This repository centralizes all scripts and configurations required to replicate
 * LICENSE: MIT License.
 * README.md: Main documentation.
 
-## 2.Software and Environment 
+## Software and Environment 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
 
 ### Core Tools & Versions
-* **FastQC:** v0.11.9
-* **BWA:** v0.7.17
-* **leeHom**
-* **sga**
-* **seqkit**
-* **krakenuniq**
-* **megahit**
-* **blastn**
-* **pydamage**
-* **mapDamage**
-* **bowtie**
-* **samtools**
-* **dedup**
-* **bwa**
-* **mafft**
-* **angsd**
-* **PileupCaller**
-* **KIN**
-* **smartPCA**
+* Processing: FastQC (v0.11.9), leeHom, sga, seqkit.
+* Taxonomy: KrakenUniq (v0.5.8), MEGAHIT (v1.2.9), blastn.
+* Ancient DNA: pydamage (v0.70), mapDamage (v2.2.1).
+* Genomics: BWA (v0.7.17), samtools (v1.13), angsd (v0.935), pileupCaller.
+* Population Genetics: BEAST2 (v2.6.6), smartPCA (EIG v7.2.1), KIN (v1.0).
 
-## 1. Data pre-processing
 
-### 1.1 Read Processing and Adapter Trimming
+## Detailed Analysis Workflow
+
+### 1. Data Pre-processing
+#### 1.1 Adapter trimming and Filtering
+
+Process raw reads including adapter trimming and length filtering.
 ```bash
-#!/bin/bash
-# scripts/01_preprocessing.sh
-
-ID=$1
-DATA1=$2
-DATA2=$3
-THREADS=$4
-MIN_LENGTH=30
-OUT_CLEAN="${ID}_clean.fq"
-
-if [ -f "$OUT_CLEAN" ]; then
-    echo "[INFO] Pre-processed file '$OUT_CLEAN' already exists."
-    echo "[INFO] Verifying file integrity..."
-    if [ -s "$OUT_CLEAN" ]; then
-        echo "[INFO] Integrity check passed. Skipping trimming and merging steps."
-        exit 0
-    else
-        echo "[WARNING] '$OUT_CLEAN' is empty. Proceeding with raw data processing..."
-    fi
-fi
-
-echo "[PROCESS] Executing leeHom for $ID..."
-leeHom \
-    -f AGATCGGAAGAGCACACGTCTGAACTCCAGTCACNNNNNNNNATCTCGTATGCCGTCTTCTGCTTG \
-    -s AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTNNNNNNNNGTGTAGATCTCGGTGGTCGCCGTATCATT \
-    --ancientdna \
-    -fq1 "$DATA1" \
-    -fq2 "$DATA2" \
-    -fqo "$ID" \
-    -t "$THREADS"
-
-gunzip -c "${ID}.fq.gz" > "${ID}.fq"
-sga preprocess --dust-threshold=1 -m $MIN_LENGTH "${ID}.fq" -o "$OUT_CLEAN"
-rm "${ID}.fq"
+# Usage: bash scripts/01_preprocessing.sh <sample_id> <fq1> <fq2> <threads>
+bash scripts/01_preprocessing.sh sample_01 sample_01_R1.fq.gz sample_01_R2.fq.gz 8
 ```
 
-### 1.2 Fragment Length Plot and Quality Assessment
+#### 1.2 Fragment Length Plot and Quality Assessment
 ```bash
-# Generate comprehensive sequence statistics 
+#1. Generate comprehensive sequence statistics (Corresponds to Table S1)
 seqkit stats "${ID}_clean.fq" > "${ID}_clean_stats.txt"
 
-# Run FastQC for base quality distribution
-fastqc "${ID}_clean.fq" -o ./qc_reports/
-
-# Plot length distribution (R script provided in scripts/visualize_length.R)
+# 2. Extract fragment lengths
 seqkit fx2tab -l -n -i "${ID}_clean.fq" | awk '{print $2}' > "${ID}.lengths"
+
+# 3. Plot length distribution (Corresponds to Figure S1)
+# Script: scripts/visualize_length.R
+# This plot provides evidence of aDNA degradation by showing short fragment enrichment.
 Rscript scripts/visualize_length.R "${ID}.lengths" "${ID}_length_plot.pdf" "${ID}"
 ```
-## 2. Metagenomic Taxonomic Profiling
+### 2. Metagenomic Taxonomic Profiling
+This section describes the taxonomic identification of ancient metagenomic reads and the generation of the abundance matrix (Corresponds to Table S3, Figure 2, Figure 7).
+#### 2.1 K-mer Profiling and dual-threshold Filtering
 
-### 2.1 K-mer Profiling via KrakenUniq
+##### Step 1: Run Taxonomic Classification
 
-The initial screening used KrakenUniq to count unique k-mers associated with each taxon. To account for potential false positives in ancient samples, we implemented a dual-threshold filter: a species is only considered present if it possesses at least 1,000 unique k-mers and is supported by at least 200 reads.
-
+* Script: scripts/02_kraken_profiling.sh
+* Usage:
 ```bash
-#!/bin/bash
-# Description: Taxonomic Profiling via KrakenUniq
-# Usage: bash scripts/02_kraken_profiling.sh <input_fastq> <threads> <sample_id> <db_path>
-
-INPUT_FASTQ=$1
-THREADS=$2
-SAMPLE=$3
-KRAKEN_DB=$4
-RESULTS_DIR=$5
-
-mkdir -p "$RESULTS_DIR/$SAMPLE"
-
-# 1. Run KrakenUniq Classification
-krakenuniq --db "$KRAKEN_DB" \
-    --fastq-input "$INPUT_FASTQ" \
-    --threads "$THREADS" \
-    --output "$RESULTS_DIR/$SAMPLE/${SAMPLE}_sequences.krakenuniq" \
-    --report-file "$RESULTS_DIR/$SAMPLE/${SAMPLE}_krakenuniq.output" \
-    --gzip-compressed \
-    --only-classified-out
-# 2. Dual-threshold Filtering (1000 unique k-mers, 200 reads)
-python scripts/allrank_filter_krakenuniq.py \
-    "$RESULTS_DIR/$SAMPLE/${SAMPLE}_krakenuniq.output" 1000 200
-# 3. Lineage Annotation
-python3 scripts/get_lineasges_all.py \
-    "$RESULTS_DIR/$SAMPLE/${SAMPLE}_krakenuniq.output.species.filtered" \
-    "$RESULTS_DIR/$SAMPLE/krakenuniq.output.species.filtered.with_lineage.tsv"
-# 4. Abundance Matrix Generation
-python scripts/generate_abundance_matrix_lineasges.py \
-    "$RESULTS_DIR" samplename.txt Abundance_matrix.csv
+# Arguments: <input_fastq> <threads> <sample_id> <db_path> <results_dir>
+bash scripts/02_kraken_profiling.sh \
+    data/clean/sample01_clean.fq 16 sample01 \
+    /path/to/kraken_db ./results/taxa
 ```
+* Inputs: Pre-processed clean FASTQ files.
+* Outputs: * ${SAMPLE}_krakenuniq.output: Comprehensive k-mer report.
+      * ${SAMPLE}_sequences.krakenuniq: Per-read classification results.
+
+# Arguments: <input_fastq> <threads> <sample_id> <db_path> <results_dir>
+bash scripts/02_kraken_profiling.sh \
+    data/clean/sample01_clean.fq 16 sample01 \
+    /path/to/kraken_db ./results/taxa
+Inputs: Pre-processed clean FASTQ files.
+
+Outputs: * ${SAMPLE}_krakenuniq.output: Comprehensive k-mer report.
+
+${SAMPLE}_sequences.krakenuniq: Per-read classification results.
+
 ### 2.2 Assembly-based Metagenomic Validation and Authentication
 
 ```bash
