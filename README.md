@@ -19,6 +19,11 @@ All software used for the analysis, including precise version numbers, is listed
 * Genomics: BWA , samtools , angsd , Dedup (), pileupCaller (v1.6.0.0), bamtools (v2.4.0), bowtie (v2.5.4)
 * Population Genetics: mafft, BEAST2 (), smartPCA (EIG v7.2.1), KIN (v3.1.3).
 
+## Data Preparation
+Raw Sequencing Data: All raw metagenomic reads are deposited in the Genome Sequence Archive (GSA) under accession PRJCA039170.
+    * Access: The data can be searched at https://ngdc.cncb.ac.cn/gsa.
+    * Availability: As per GSA policy, the data is currently under embargo and will be made publicly accessible upon the formal publication of this manuscript.
+    * For Reviewers: If you require temporary access to the raw data for validation during the peer-review process, please contact the corresponding author.
 
 ## Detailed Analysis Workflow
 
