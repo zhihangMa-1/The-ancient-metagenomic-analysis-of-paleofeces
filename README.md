@@ -241,7 +241,7 @@ To minimize bias in low-coverage ancient genomes, we performed pseudo-haploid SN
 
     * pileupCaller --randomHaploid: Randomly selects one allele per site to account for low coverage.
 
-* Input Files: SNP positions are defined in configs/Dog10k_SNPs.bed.
+* Input Files: SNP positions are defined in configs/Dog10k_SNPs.bed
 
 * Output: EIGENSTRAT format files (.geno, .snp, .ind) for population genetics.
 
