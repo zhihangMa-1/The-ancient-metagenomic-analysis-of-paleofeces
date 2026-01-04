@@ -13,11 +13,11 @@ This repository centralizes all scripts and configurations required to replicate
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
 
 ### Core Tools & Versions
-* Processing: FastQC (v0.11.9), leeHom, sga, seqkit.
-* Taxonomy: KrakenUniq (v0.5.8), MEGAHIT (v1.2.9), blastn.
-* Ancient DNA: pydamage (v0.70), mapDamage (v2.2.1).
-* Genomics: BWA (v0.7.17), samtools (v1.13), angsd (v0.935), pileupCaller.
-* Population Genetics: BEAST2 (v2.6.6), smartPCA (EIG v7.2.1), KIN (v1.0).
+* Processing: FastQC (v0.12.1), leeHom (v1.2.17), sga (v0.10.14), seqkit (2.12.0).
+* Taxonomy: KrakenUniq (v1.0.4), MEGAHIT (v1.2.9), blastn (v2.17.0).
+* Ancient DNA: pydamage, mapDamage 
+* Genomics: BWA , samtools , angsd , Dedup (), pileupCaller (v1.6.0.0), bamtools (v2.4.0), bowtie (v2.5.4)
+* Population Genetics: mafft, BEAST2 (), smartPCA (EIG v7.2.1), KIN (v3.1.3).
 
 
 ## Detailed Analysis Workflow
