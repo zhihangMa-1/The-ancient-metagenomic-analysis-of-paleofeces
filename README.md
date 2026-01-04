@@ -16,9 +16,9 @@ All software used for the analysis, including precise version numbers, is listed
 ### Core Tools & Versions
 * Processing: FastQC (v0.12.1), leeHom (v1.2.17), sga (v0.10.14), seqkit (2.12.0).
 * Taxonomy: KrakenUniq (v1.0.4), MEGAHIT (v1.2.9), blastn (v2.17.0).
-* Ancient DNA: pydamage, mapDamage 
-* Genomics: BWA , samtools , angsd , Dedup (), pileupCaller (v1.6.0.0), bamtools (v2.4.0), bowtie (v2.5.4)
-* Population Genetics: mafft, BEAST2 (), smartPCA (EIG v7.2.1), KIN (v3.1.3).
+* Ancient DNA: pydamage (v0.72), mapDamage (v2.2.3).
+* Genomics: BWA (v0.7.17) , samtools (v1.23) , angsd (v0.941-26-g6b5d906), Dedup (v0.12.9), pileupCaller (v1.6.0.0), bamtools (v2.4.0), bowtie (v2.5.4)
+* Population Genetics: mafft (v7.525), BEAST (v2.7.7), smartPCA (EIG v7.2.1), KIN (v3.1.3).
 
 ## Data Availability and Test Dataset
 **Raw Sequencing Data:** All raw metagenomic reads are deposited in the Genome Sequence Archive (GSA) under accession PRJCA055074.
