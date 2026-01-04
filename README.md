@@ -19,11 +19,17 @@ All software used for the analysis, including precise version numbers, is listed
 * Genomics: BWA , samtools , angsd , Dedup (), pileupCaller (v1.6.0.0), bamtools (v2.4.0), bowtie (v2.5.4)
 * Population Genetics: mafft, BEAST2 (), smartPCA (EIG v7.2.1), KIN (v3.1.3).
 
-## Data Preparation
-Raw Sequencing Data: All raw metagenomic reads are deposited in the Genome Sequence Archive (GSA) under accession PRJCA039170.
+## Data Availability and Test Dataset
+**Raw Sequencing Data:** All raw metagenomic reads are deposited in the Genome Sequence Archive (GSA) under accession PRJCA039170.
    * Access: The data can be searched at https://ngdc.cncb.ac.cn/gsa.
    * Availability: As per GSA policy, the data is currently under embargo and will be made publicly accessible upon the formal publication of this manuscript.
    * For Reviewers: If you require temporary access to the raw data for validation during the peer-review process, please contact the corresponding author.
+
+**Test Dataset:** To facilitate the peer-review process and ensure computational reproducibility, we have provided a downsampled test dataset in the data/ directory. This allows reviewers to verify the pipeline using the provided Docker image without waiting for the full GSA release.
+The data/ folder contains:
+  * test_R1.fq & test_R2.fq: Raw paired-end reads used to test the Preprocessing (Step 1).
+  * test.clean.fq: After preprocessed reads used from test Step 2 to Step 4.
+
 
 ## Detailed Analysis Workflow
 
@@ -33,7 +39,7 @@ Raw Sequencing Data: All raw metagenomic reads are deposited in the Genome Seque
 Process raw reads including adapter trimming and length filtering.
 ```bash
 # Usage: bash scripts/01_preprocessing.sh <sample_id> <fq1> <fq2> <threads>
-bash scripts/01_preprocessing.sh sample_01 sample_01_R1.fq.gz sample_01_R2.fq.gz 8
+bash scripts/01_preprocessing.sh test test_R1.fq.gz test_R2.fq.gz 8
 ```
 
 #### 1.2 Fragment Length Plot and Quality Assessment (Corresponds to Table S1 and Figure S1)
@@ -60,7 +66,7 @@ This section describes the taxonomic identification of ancient metagenomic reads
 ```bash
 # Arguments: <input_fastq> <threads> <sample_id> <db_path> <results_dir>
 bash scripts/02_kraken_profiling.sh \
-    data/clean/sample01_clean.fq 16 sample01 \
+    data/test_clean.fq 16 test \
     /path/to/kraken_db ./results/taxa
 ```
 * Inputs: Pre-processed clean FASTQ files.
@@ -73,12 +79,12 @@ We provide a Python-based pipeline to filter the KrakenUniq output and assign fu
 ```bash
 # 1. Filter results (Thresholds: 1000 unique k-mers, 200 reads)
 python scripts/allrank_filter_krakenuniq.py \
-    results/taxa/sample01/sample01_krakenuniq.output 1000 200
+    results/taxa/test/test_krakenuniq.output 1000 200
 
 # 2. Annotate lineages for the filtered species list
 python scripts/get_lineasges_all.py \
-    results/taxa/sample01/sample01_krakenuniq.output.species.filtered \
-    results/taxa/sample01/taxa_with_lineage.tsv
+    results/taxa/test/test_krakenuniq.output.species.filtered \
+    results/taxa/test/taxa_with_lineage.tsv
 ```
 
 ##### Step 3: Abundance Matrix Generation (Corresponds to Table S3)
@@ -107,7 +113,7 @@ We utilize BBTools clumpify for sequence deduplication to improve assembly conti
 * Usage：
 ```bash
 # Arguments: <sample_id> <input_fastq> <threads> <nt_db_path>
-bash scripts/03_blastn.sh sample_01 data/clean/sample01_clean.fq 16 /path/to/ncbi_nt_db
+bash scripts/03_blastn.sh test data/test_clean.fq 16 /path/to/ncbi_nt_db
 ```
 #### Step 2: Ancient DNA Damage Authentication
 * Filtering Criteria for "Ancient" Status:
@@ -126,9 +132,9 @@ Authenticated contigs are queried against the NCBI nt database using blastn. A c
 * Command:
 ```bash
 python scripts/bayes_genus.py \
-    results/sample_01/nt_sample_01_confirm.tsv \
-    results/sample_01/ancient_contigs.fa \
-    results/sample_01/sample_01_final_taxonomic_refinement.tsv
+    results/test/nt_test_confirm.tsv \
+    results/test/ancient_contigs.fa \
+    results/test/test_final_taxonomic_refinement.tsv
 ```
 
 ### 2.3. Targeted Authentication and Deamination Profile
@@ -146,7 +152,7 @@ We use BWA aln with parameters optimized for ancient DNA (stringent gap opening 
   
 ```bash
 # Arguments: <input_fastq> <sample_id> <threads> <ref_fasta>
-bash scripts/04_authentication.sh data/clean/sample01_clean.fq sample01 16 refs/dog_genome.fa
+bash scripts/04_authentication.sh data/test_clean.fq test 16 refs/dog_genome.fa
 ```
 * Key Outputs:
     * Mapping Stats: Located in ${OUT_DIR}/qualimap_${ID} (Source for **Table S4**).
@@ -174,7 +180,7 @@ mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_referen
 * Usage:
 ```bash
 # Arguments: <sample_id> <input_fastq> <threads> <consensus_ref>
-bash scripts/05_mtDNA_consensus.sh sample_01 data/clean/sample01_clean.fq 16 refs/canis_consensus.fa
+bash scripts/05_mtDNA_consensus.sh test data/test_clean.fq 16 refs/canis_consensus.fa
 ```
 * Key Parameters & Tools:
 
@@ -220,7 +226,7 @@ Reads were aligned to the Canis lupus familiaris reference genome (UU_Cfam_GSD_1
 * Usage:
 ```bash
 # Arguments: <input_fastq> <sample_id> <threads> <ref_fasta>
-bash scripts/06_genome_processing.sh sample_01 data/clean/sample01_clean.fq 16 dog_ref.fa
+bash scripts/06_genome_processing.sh test data/test_clean.fq 16 dog_ref.fa
 ```
 #### 4.2 Sex Determination (Corresponds to Table S5)
 
@@ -228,9 +234,9 @@ Biological sex was determined using the Rx ratio method (de Flamingh et al., 202
 
 ```bash
 # Step 1: Generate coverage statistics
-samtools idxstats sample_01.final.bam > sample_01.idxstats
+samtools idxstats test.final.bam > test.idxstats
 # Step 2: Run R script for Rx ratio calculation
-Rscript scripts/RX_identifier.R "sample_01" "sample_01.idxstats"
+Rscript scripts/RX_identifier.R "test" "test.idxstats"
 ```
 * Results: Outputs the biological sex (Male/Female) and confidence intervals (Corresponds to **Table S5**).
   
