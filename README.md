@@ -141,7 +141,7 @@ We use BWA aln with parameters optimized for ancient DNA (stringent gap opening 
   
 ```bash
 # Arguments: <input_fastq> <sample_id> <threads> <ref_fasta>
-bash scripts/04_authentication.sh data/clean/sample01.fq sample01 16 refs/dog_genome.fa
+bash scripts/04_authentication.sh data/clean/sample01_clean.fq sample01 16 refs/dog_genome.fa
 ```
 * Key Outputs:
     * Mapping Stats: Located in ${OUT_DIR}/qualimap_${ID} (Source for **Table S4**).
@@ -169,7 +169,7 @@ mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_referen
 * Usage:
 ```bash
 # Arguments: <sample_id> <input_fastq> <threads> <consensus_ref>
-bash scripts/05_mtDNA_consensus.sh sample_01 data/clean.fq 16 refs/canis_consensus.fa
+bash scripts/05_mtDNA_consensus.sh sample_01 data/clean/sample01_clean.fq 16 refs/canis_consensus.fa
 ```
 * Key Parameters & Tools:
 
@@ -215,7 +215,7 @@ Reads were aligned to the Canis lupus familiaris reference genome (UU_Cfam_GSD_1
 * Usage:
 ```bash
 # Arguments: <input_fastq> <sample_id> <threads> <ref_fasta>
-bash scripts/06_genome_processing.sh sample_01 data/clean.fq 16 dog_ref.fa
+bash scripts/06_genome_processing.sh sample_01 data/clean/sample01_clean.fq 16 dog_ref.fa
 ```
 #### 4.2 Sex Determination (Corresponds to Table S5)
 
