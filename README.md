@@ -29,7 +29,7 @@ All software used for the analysis, including precise version numbers, is listed
 **Test Dataset:** To facilitate the peer-review process and ensure computational reproducibility, we have provided a downsampled test dataset in the data/ directory. This allows reviewers to verify the pipeline using the provided Docker image without waiting for the full GSA release.
 The data/ folder contains:
   * test_R1.fq & test_R2.fq: Raw paired-end reads used to test the Preprocessing (Step 1).
-  * test.clean.fq: Preprocessed reads to be used as input for Steps 2 through 4.
+  * test_clean.fq: Preprocessed reads to be used as input for Steps 2 through 4.
 
 
 ## Detailed Analysis Workflow
