@@ -6,6 +6,7 @@ This repository centralizes all scripts and configurations required to replicate
 
 * scripts/: Core analysis pipeline (Bash, Python, and R scripts).
 * configs/: Configuration templates, SNP lists, and example metadata.
+* data/: Test dataset (including raw paired-end reads and clean collapsed reads).
 * LICENSE: MIT License.
 * README.md: Main documentation.
 
