@@ -11,8 +11,22 @@ This repository centralizes all scripts and configurations required to replicate
 * README.md: Main documentation.
 
 ## Software and Environment 
-All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image [Link] that encapsulates all necessary software dependencies and precise tool versions.
+All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image that encapsulates all necessary software dependencies and precise tool versions. It is permanently archived on Zenodo at https://doi.org/10.5281/zenodo.18146279.
+* Download and Load: Download edna_v1.0.tar.gz from the Zenodo link and load it:
 
+```bash
+docker load < edna_v1.0.tar.gz
+```
+* Start the container:
+
+```bash
+docker run -it --name edna_analysis edna:v1.0 /bin/bash
+```
+
+* Verify the environment: Inside the container, you can check the pre-installed tools (e.g., mapDamage):
+```bash
+mapDamage --version
+```
 ### Core Tools & Versions
 * Processing: FastQC (v0.12.1), leeHom (v1.2.17), sga (v0.10.14), seqkit (2.12.0).
 * Taxonomy: KrakenUniq (v1.0.4), MEGAHIT (v1.2.9), blastn (v2.17.0).
