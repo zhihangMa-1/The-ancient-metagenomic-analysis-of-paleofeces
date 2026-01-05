@@ -12,13 +12,15 @@ This repository centralizes all scripts and configurations required to replicate
 
 ## Software and Environment 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image that encapsulates all necessary software dependencies and precise tool versions. It is permanently archived on Zenodo at https://doi.org/10.5281/zenodo.18146279.
+
 **Download:** Obtain the Docker image file edna_v1.0.tar.gz from Zenodo (DOI: 10.5281/zenodo.18146279).
+
 **Load:** Import the image into your local Docker environment:
 
 ```bash
 docker load < edna_v1.0.tar.gz
 ```
-Run: Launch the container. We recommend mounting your current working directory to access the scripts and data:
+**Run:** Launch the container. We recommend mounting your current working directory to access the scripts and data:
 
 ```bash
 docker run -it --name edna_reproducibility edna:v1.0 /bin/bash
