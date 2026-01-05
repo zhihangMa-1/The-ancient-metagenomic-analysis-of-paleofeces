@@ -13,18 +13,15 @@ This repository centralizes all scripts and configurations required to replicate
 ## Software and Environment 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image that encapsulates all necessary software dependencies and precise tool versions. It is permanently archived on Zenodo at https://doi.org/10.5281/zenodo.18146279.
 
-**Download:** Obtain the Docker image file edna_v1.0.tar.gz from Zenodo (DOI: 10.5281/zenodo.18146279).
+**Download:** Obtain the Docker image file edna_v1.0.tar.gz from Zenodo (DOI: 10.5281/zenodo.18146279). 
 
 **Load:** Import the image into your local Docker environment:
 
 ```bash
 docker load < edna_v1.0.tar.gz
 ```
-**Run:** Launch the container. We recommend mounting your current working directory to access the scripts and data:
+After loading and running the container (edna:v1.0), all bioinformatic tools are located in the /root/software directory.
 
-```bash
-docker run -it --name edna_reproducibility edna:v1.0 /bin/bash
-```
 To ensure successful reproduction of the pipeline via Docker, we recommend a system with at least 32 CPU cores and 128 GB of RAM (primarily required for memory-intensive steps like MEGAHIT v1.2.9 assembly and KrakenUniq v1.0.4 profiling), along with 1 TB of free storage for intermediate data.
 
 ### Core Tools & Versions
