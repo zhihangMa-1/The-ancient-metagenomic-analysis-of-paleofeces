@@ -12,6 +12,19 @@ This repository centralizes all scripts and configurations required to replicate
 
 ## Software and Environment 
 All software used for the analysis, including precise version numbers, is listed below. We have provided a Docker image that encapsulates all necessary software dependencies and precise tool versions. It is permanently archived on Zenodo at https://doi.org/10.5281/zenodo.18146279.
+**Download:** Obtain the Docker image file edna_v1.0.tar.gz from Zenodo (DOI: 10.5281/zenodo.18146279).
+**Load:** Import the image into your local Docker environment:
+
+```bash
+docker load < edna_v1.0.tar.gz
+```
+Run: Launch the container. We recommend mounting your current working directory to access the scripts and data:
+
+```bash
+docker run -it --name edna_reproducibility edna:v1.0 /bin/bash
+```
+To ensure successful reproduction of the pipeline via Docker, we recommend a system with at least 32 CPU cores and 128 GB of RAM (primarily required for memory-intensive steps like MEGAHIT v1.2.9 assembly and KrakenUniq v1.0.4 profiling), along with 1 TB of free storage for intermediate data.
+
 ### Core Tools & Versions
 * Processing: FastQC (v0.12.1), leeHom (v1.2.17), sga (v0.10.14), seqkit (v2.12.0).
 * Taxonomy: KrakenUniq (v1.0.4), MEGAHIT (v1.2.9), blastn (v2.17.0).
@@ -37,10 +50,14 @@ The data/ folder contains:
 #### 1.1 Adapter trimming and Filtering
 
 Process raw reads including adapter trimming and length filtering.
+* Script: scripts/01_preprocessing.sh
+* Usage:
 ```bash
 # Usage: bash scripts/01_preprocessing.sh <sample_id> <fq1> <fq2> <threads>
 bash scripts/01_preprocessing.sh test test_R1.fq.gz test_R2.fq.gz 8
 ```
+* Inputs: Raw paired-end FASTQ files (compressed).
+* Outputs: Filtered and trimmed high-quality "clean" reads (${ID}_clean.fq).
 
 #### 1.2 Fragment Length Plot and Quality Assessment (Corresponds to Table S1 and Figure S1)
 ```bash
