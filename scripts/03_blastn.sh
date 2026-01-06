@@ -1,11 +1,13 @@
 #!/bin/bash
 # Description: contig assembly, authentication, and BLAST validation
-# Usage: bash scripts/03_blastn.sh <sample_id> <input_fastq> <threads> <nt_db_path>
+# Usage: bash scripts/03_blastn.sh <sample_id> <input_fastq> <threads> <nt_db_path> <tax_nodes_dmp> <tax_names_dmp>
 
 ID=$1
 INPUT_FQ=$2
 THREADS=$3
 NT_DB=$4
+NODES_DMP=$5  
+NAMES_DMP=$6
 
 # Define Directory Structure (Generalized Paths)
 RESULT_DIR="./${ID}"
@@ -60,7 +62,7 @@ awk '
   END {
     if (seqname != "") print seqname, seqlen
   }
-' "${RESULT_DIR}/${ID}_ancient_contigs.fa" > "${RESULT_DIR}/contig_${id}_lengths.tsv" 
+' "${RESULT_DIR}/${ID}_ancient_contigs.fa" > "${RESULT_DIR}/contig_${ID}_lengths.tsv" 
 
 #5. Taxonomic Assignment & Bayesian Filtering
 # Query authenticated contigs against the NCBI nt database
@@ -74,7 +76,9 @@ blastn -query "${RESULT_DIR}/ancient_contigs.fa" \
 # Resolve taxonomic ambiguities using a custom Bayesian model
 python scripts/bayes_genus.py \
     "${RESULT_DIR}/nt_${ID}_confirm.tsv" \
-    "${RESULT_DIR}/contig_${id}_lengths.tsv" 
+    "${RESULT_DIR}/contig_${ID}_lengths.tsv" 
+    "${NODES_DMP}" \
+    "${NAMES_DMP}" \
     "${RESULT_DIR}/${ID}_detailed_results.tsv" \
     "${RESULT_DIR}/${ID}_abundance_summary.tsv"
 
