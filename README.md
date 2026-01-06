@@ -128,8 +128,8 @@ To further validate the taxonomic assignments and confirm the ancient origin of 
 We utilize BBTools clumpify for sequence deduplication to improve assembly contiguity, followed by MEGAHIT for de novo assembly. Reads are then mapped back to the resulting contigs to evaluate damage.
 * Usage：
 ```bash
-# Arguments: <sample_id> <input_fastq> <threads> <nt_db_path>
-bash scripts/03_blastn.sh test data/test_clean.fq 16 /path/to/ncbi_nt_db
+# Arguments: <sample_id> <input_fastq> <threads> <nt_db_path> <nodes_dmp> <names_dmp>
+bash scripts/03_blastn.sh test data/test_clean.fq 16 /path/to/ncbi_nt_db /path/to/nodes.dmp /path/to/names.dmp
 ```
 #### Step 2: Ancient DNA Damage Authentication
 * Filtering Criteria for "Ancient" Status:
