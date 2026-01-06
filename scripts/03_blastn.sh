@@ -41,11 +41,26 @@ pydamage analyze "${RESULT_DIR}/${ID}_rmdup.bam" -m 500 -p "${THREADS}" -pl -f
 
 #4. Extract Authenticated Ancient Contigs
 # Filtering criteria: accuracy >= 0.7, q-value < 0.05, and deamination signal present
-awk -F',' 'NR>1 && $2 >= 0.7 && $12 < 0.05 && $15 >= 5 && $17 >= 0.05 {print $1}' \
-    "${RESULT_DIR}/pydamage_results/pydamage_results.csv" > "${RESULT_DIR}/ancient_contigs.list"
+awk -F',' 'NR>1 && $2 >= 0.5 && $11 < 0.05 && $15 >= 5 && ($17 >= 0.02 || $18 >= 0.02) {print $1}' \
+    "${RESULT_DIR}/pydamage_results/pydamage_results.csv" > "${RESULT_DIR}/${ID}_ancient_contigs.list"
 # Extract sequences of authenticated contigs
 seqtk subseq "${RESULT_DIR}/megahit_${ID}/${ID}.contigs.fa" \
-    "${RESULT_DIR}/ancient_contigs.list" > "${RESULT_DIR}/ancient_contigs.fa"
+    "${RESULT_DIR}/${ID}_ancient_contigs.list" > "${RESULT_DIR}/${ID}_ancient_contigs.fa"
+
+awk '
+  /^>/ {
+    if (seqname != "") print seqname, seqlen;
+    seqname = substr($1, 2);
+    seqlen = 0;
+    next
+  }
+  {
+    seqlen += length($0)
+  }
+  END {
+    if (seqname != "") print seqname, seqlen
+  }
+' "${RESULT_DIR}/${ID}_ancient_contigs.fa" > "${RESULT_DIR}/contig_${id}_lengths.tsv" 
 
 #5. Taxonomic Assignment & Bayesian Filtering
 # Query authenticated contigs against the NCBI nt database
@@ -59,7 +74,8 @@ blastn -query "${RESULT_DIR}/ancient_contigs.fa" \
 # Resolve taxonomic ambiguities using a custom Bayesian model
 python scripts/bayes_genus.py \
     "${RESULT_DIR}/nt_${ID}_confirm.tsv" \
-    "${RESULT_DIR}/ancient_contigs.fa" \
-    "${RESULT_DIR}/${ID}_final_taxonomic_refinement.tsv"
+    "${RESULT_DIR}/contig_${id}_lengths.tsv" 
+    "${RESULT_DIR}/${ID}_detailed_results.tsv" \
+    "${RESULT_DIR}/${ID}_abundance_summary.tsv"
 
 echo "** Assembly-based Refinement for ${ID} Complete **"
