@@ -177,21 +177,18 @@ bash scripts/04_authentication.sh data/test_clean.fq test 16 refs/dog_genome.fa
 ## 3. Mitochondrial phylogenetic tree of Canis lupus
 
 This section details the reconstruction of the mitochondrial genome (mtDNA) and the subsequent Bayesian phylogenetic inference used to determine the maternal lineage of the identified Canis lupus.
-### Step 1: Genus-level Consensus Reference Construction
-To avoid "reference bias" toward a single modern dog or wolf genome, we constructed a consensus reference from multiple Canis species (Accession numbers in Table S1).
-```bash
-cat *_NCBI_mitogenome_references.fa > cat_NCBI_mitogenome_references.fa
-mafft --thread n cat_NCBI_mitogenome_references.fa > Aln_NCBI_mitogenome_references.fa
-```
-### Step 2: Then build consensus sequence for mitogenome reference sequences downloaded from NCBI
 
-* Alignment file opened in Geneious, consensus sequences created with 75% Majority rule for family level/each clade
+### Workflow Summary
+**Purpose:** From raw reads to a Maximum Clade Credibility (MCC) tree.
+**Key Script:** scripts/05_mtDNA_consensus.sh
+**Direct Evidence:** Figure 3 (Phylogenetic tree of Canis mtDNA).
 
-* Alignment created from all clade-consensus mitogenome references in Geneious
+### Step 1: Consensus Reference Construction
+To minimize reference bias, we used a genus-level consensus reference built from multiple Canis mitogenomes (see **Table S1** for accessions).
+* Tools: MAFFT for alignment; Geneious (75% majority rule) for consensus sequence generation.
+### Step 2: Mapping and Sequence Reconstruction
 
-* Consensus sequence created with 75% Majority rule from all clade-consensus mitogenome references in Geneious 
-
-### Step 3: Mapping and Consensus Generation
+Ancient reads were mapped to the Canis consensus reference using parameters optimized for degraded DNA.
 
 * Usage:
 ```bash
@@ -205,7 +202,7 @@ bash scripts/05_mtDNA_consensus.sh test data/test_clean.fq 16 refs/canis_consens
 
 * Primary Output: ${ID}_mt_consensus.fa (The reconstructed mitochondrial sequence).
 
-### Step 4: Running BEAST (Phylogenetic placement mtDNA)
+### Step 3: Running BEAST (Phylogenetic placement mtDNA)
 The reconstructed mitochondrial genome was aligned with a global dataset of Canis references to perform Bayesian phylogenetic inference.
 
 ```bash
@@ -257,8 +254,6 @@ Rscript scripts/RX_identifier.R "test" "test.idxstats"
 * Results: Outputs the biological sex (Male/Female) and confidence intervals (Corresponds to **Table S5**).
   
 #### 4.3: SNP Calling
-
-To minimize bias in low-coverage ancient genomes, we performed pseudo-haploid SNP calling against the Dog10K dataset.
 
 * Software: samtools mpileup and pileupCaller.
 
