@@ -119,7 +119,7 @@ To further validate the taxonomic assignments and confirm the ancient origin of 
 #### Workflow Summary
 * Purpose: Reconstruct longer contigs from reads, authenticate their ancient status via deamination patterns, and refine taxonomic assignments.
 * Core Script: scripts/03_blastn.sh (An integrated wrapper for assembly and authentication).
-* Key Evidence: This process supports the authenticity of the taxa presented in **Figure 6** and provides the data for the taxonomic refinements.
+* Key Evidence: This process supports the authenticity of the taxa presented in **Figure 6a** and provides the data for the taxonomic refinements.
 
 #### Step 1: Metagenomic Assembly and Read Mapping
 We utilize BBTools clumpify for sequence deduplication to improve assembly contiguity, followed by MEGAHIT for de novo assembly. Reads are then mapped back to the resulting contigs to evaluate damage.
