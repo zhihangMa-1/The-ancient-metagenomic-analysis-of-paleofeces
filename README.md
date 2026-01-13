@@ -34,8 +34,6 @@ To ensure successful reproduction of the pipeline via Docker, we recommend a sys
 **Raw Sequencing Data:** All raw metagenomic reads are deposited in the Genome Sequence Archive (GSA) under accession PRJCA055074.
    * Access: The data can be searched at https://ngdc.cncb.ac.cn/gsa.
    * Availability: As per GSA policy, the data is currently under embargo and will be made publicly accessible upon the formal publication of this manuscript.
-   * For Reviewers: If you require temporary access to the raw data for validation during the peer-review process, please contact the corresponding author.
-
 **Test Dataset:** To facilitate the peer-review process and ensure computational reproducibility, we have provided a downsampled test dataset in the data/ directory. This allows reviewers to verify the pipeline using the provided Docker image without waiting for the full GSA release.
 The data/ folder contains:
   * test_R1.fq & test_R2.fq: Raw paired-end reads used to test the Preprocessing (Step 1).
