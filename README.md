@@ -115,7 +115,7 @@ python scripts/generate_abundance_matrix_lineasges.py \
 * Key Output: Abundance_matrix.csv (The primary data source for **Figure 2** and **Figure 7**).
 
 
-### 2.2 Assembly-based Metagenomic Validation and Authentication
+### 2.2 Assembly-based Metagenomic Validation and Authentication (Corresponds to Figure S6)
 
 To further validate the taxonomic assignments and confirm the ancient origin of identified taxa, we performed de novo assembly followed by damage-based authentication. This step ensures that the sequences used for taxonomic refinement exhibit typical ancient DNA post-mortem deamination patterns.
 
